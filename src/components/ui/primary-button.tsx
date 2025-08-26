@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface PrimaryButtonProps {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'accent';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'accent' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   glow?: boolean;
   angled?: boolean;
@@ -11,6 +11,7 @@ interface PrimaryButtonProps {
   onClick?: () => void;
   disabled?: boolean;
   className?: string;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
@@ -20,9 +21,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   angled = false,
   className,
   children,
-  onClick,
   disabled = false,
-  ...props
+  onClick,
+  type = 'button',
 }) => {
   const baseClasses = "font-medium transition-all duration-normal focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   
@@ -30,7 +31,8 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
     primary: "btn-primary",
     secondary: "btn-secondary", 
     ghost: "btn-ghost",
-    accent: "bg-accent hover:bg-accent/90 text-accent-foreground border border-transparent"
+    accent: "bg-accent hover:bg-accent/90 text-accent-foreground border border-transparent",
+    outline: "border border-border bg-transparent hover:bg-accent hover:text-accent-foreground"
   };
   
   const sizeClasses = {
@@ -51,8 +53,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
   return (
     <motion.button
       className={combinedClasses}
-      onClick={onClick}
       disabled={disabled}
+      onClick={onClick}
+      type={type}
       whileHover={{ scale: disabled ? 1 : 1.02 }}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
