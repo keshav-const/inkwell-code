@@ -71,20 +71,46 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
 
   const handleOAuthSignIn = async (provider: 'google' | 'github') => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      setLoading(true);
+      
+      // Use skipBrowserRedirect to get the URL instead of automatic redirect
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/`,
+          skipBrowserRedirect: true,
         },
       });
 
       if (error) throw error;
+
+      // Open the OAuth URL in a new tab to avoid iframe restrictions
+      if (data?.url) {
+        const newWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
+        
+        if (!newWindow) {
+          // Fallback if popup is blocked
+          window.location.href = data.url;
+        } else {
+          // Show a message to user about the new tab
+          toast({
+            title: 'Authentication opened',
+            description: 'Please complete authentication in the new tab.',
+          });
+          
+          // Close the modal since auth will continue in new tab
+          onClose();
+        }
+      }
     } catch (error: any) {
+      console.error('OAuth error:', error);
       toast({
         title: 'Authentication failed',
-        description: error.message || 'An error occurred during authentication.',
+        description: error.message || 'Failed to start authentication process.',
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   };
 
