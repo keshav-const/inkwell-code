@@ -4,8 +4,43 @@ import { TopBar } from './top-bar';
 import { EditorPane } from '../editor/editor-pane';
 import { RightDockTabs } from '../docks/right-dock-tabs';
 import { BottomDockTabs } from '../docks/bottom-dock-tabs';
+import type { FileModel } from '@/types/collaboration';
+import { FileManager } from '@/utils/file-manager';
 
-export const MainLayout: React.FC = () => {
+interface Room {
+  id: string;
+  name: string;
+  code: string;
+  admin_id: string;
+  created_at: string;
+}
+
+interface RoomMember {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'member';
+  profiles: {
+    display_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+interface MainLayoutProps {
+  room: Room;
+  members: RoomMember[];
+  files: FileModel[];
+  fileManager: FileManager | null;
+  collaboration: any;
+}
+
+export const MainLayout: React.FC<MainLayoutProps> = ({ 
+  room, 
+  members, 
+  files, 
+  fileManager, 
+  collaboration 
+}) => {
   const [rightDockCollapsed, setRightDockCollapsed] = useState(false);
   const [bottomDockCollapsed, setBottomDockCollapsed] = useState(true);
 
@@ -23,7 +58,7 @@ export const MainLayout: React.FC = () => {
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top Command Bar */}
       <TopBar 
-        roomId="collaborative-room"
+        roomId={room.id}
         branchName="main"
         onShareClick={handleShare}
         onSettingsClick={handleSettings}
