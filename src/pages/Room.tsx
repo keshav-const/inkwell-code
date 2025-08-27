@@ -68,21 +68,40 @@ export const Room = () => {
 
         setRoom(roomData);
 
-        // Fetch room members
+        // Fetch room members (simpler query without problematic join)
         const { data: membersData, error: membersError } = await supabase
           .from('room_members')
-          .select(`
-            *,
-            profiles (
-              display_name,
-              email,
-              avatar_url
-            )
-          `)
+          .select('*')
           .eq('room_id', roomId);
 
         if (membersError) throw membersError;
-        setMembers(membersData || []);
+        
+        // Fetch profiles separately to avoid join issues
+        const memberIds = (membersData || []).map(m => m.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', memberIds);
+        
+        // Combine the data
+        const typedMembers: RoomMember[] = (membersData || []).map(member => {
+          const profile = (profilesData || []).find(p => p.id === member.user_id);
+          return {
+            ...member,
+            role: member.role as 'admin' | 'member',
+            profiles: profile ? {
+              display_name: profile.display_name,
+              email: profile.email,
+              avatar_url: profile.avatar_url
+            } : {
+              display_name: null,
+              email: '',
+              avatar_url: null
+            }
+          };
+        });
+        
+        setMembers(typedMembers);
 
         // Fetch room files
         const { data: filesData, error: filesError } = await supabase
