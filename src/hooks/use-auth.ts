@@ -30,6 +30,8 @@ export const useAuth = () => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
         setAuthState(prev => ({
           ...prev,
           session,
@@ -69,16 +71,39 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthState(prev => ({
-        ...prev,
-        session,
-        user: session?.user ?? null,
-      }));
-    });
+    // Check for existing session on mount
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Session check error:', error);
+        }
+        
+        setAuthState(prev => ({
+          ...prev,
+          session,
+          user: session?.user ?? null,
+        }));
+      } catch (error) {
+        console.error('Failed to get session:', error);
+        setAuthState(prev => ({ ...prev, loading: false }));
+      }
+    };
 
-    return () => subscription.unsubscribe();
+    checkSession();
+
+    // Add focus listener to refresh session when user returns from OAuth
+    const handleFocus = () => {
+      console.log('Window focused, checking session...');
+      checkSession();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const signOut = async () => {

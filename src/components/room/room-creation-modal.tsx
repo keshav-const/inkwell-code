@@ -26,11 +26,27 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
     setLoading(true);
 
     try {
-      // Check authentication state first
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        throw new Error(`Session error: ${sessionError.message}`);
+      // Check authentication state with retry mechanism
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (!session && attempts < maxAttempts) {
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          throw new Error(`Authentication error: ${sessionError.message}`);
+        }
+        
+        session = currentSession;
+        
+        if (!session && attempts < maxAttempts - 1) {
+          console.log(`No session found, attempt ${attempts + 1}/${maxAttempts}, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        
+        attempts++;
       }
       
       if (!session?.user) {
