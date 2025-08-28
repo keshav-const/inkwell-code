@@ -26,26 +26,42 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
     setLoading(true);
 
     try {
+      // Check authentication state first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        throw new Error(`Session error: ${sessionError.message}`);
+      }
+      
+      if (!session?.user) {
+        throw new Error('You must be logged in to create a room. Please sign in and try again.');
+      }
+
+      console.log('Creating room with user ID:', session.user.id);
+
       // Generate unique room code
-      const { data: codeData } = await supabase.rpc('generate_room_code');
+      const { data: codeData, error: codeError } = await supabase.rpc('generate_room_code');
+      
+      if (codeError) {
+        throw new Error(`Failed to generate room code: ${codeError.message}`);
+      }
       
       if (!codeData) {
         throw new Error('Failed to generate room code');
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('You must be logged in to create a room');
-      }
+      // Create room with explicit admin_id
+      const roomData = {
+        name: roomName.trim(),
+        code: codeData,
+        admin_id: session.user.id,
+      };
 
-      // Create room
+      console.log('Inserting room data:', roomData);
+
       const { data: room, error: roomError } = await supabase
         .from('rooms')
-        .insert({
-          name: roomName.trim(),
-          code: codeData,
-          admin_id: user.id,
-        })
+        .insert(roomData)
         .select()
         .single();
 
@@ -56,7 +72,7 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         .from('room_members')
         .insert({
           room_id: room.id,
-          user_id: user.id,
+          user_id: session.user.id,
           role: 'admin'
         });
 
