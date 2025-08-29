@@ -26,10 +26,40 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
     setLoading(true);
 
     try {
-      // Check authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔍 Starting room creation process...');
       
-      if (sessionError || !session?.user) {
+      // Check authentication with retry mechanism
+      let session = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (!session && attempts < maxAttempts) {
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log(`📋 Auth attempt ${attempts + 1}:`, {
+          hasSession: !!currentSession,
+          hasUser: !!currentSession?.user,
+          userId: currentSession?.user?.id,
+          sessionError: sessionError?.message
+        });
+        
+        if (sessionError) {
+          console.error('❌ Session error:', sessionError);
+          throw new Error(`Authentication error: ${sessionError.message}`);
+        }
+        
+        session = currentSession;
+        
+        if (!session && attempts < maxAttempts - 1) {
+          console.log(`⏳ No session found, retrying in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        attempts++;
+      }
+      
+      if (!session?.user) {
+        console.error('❌ No authenticated user found after retries');
         throw new Error('You must be logged in to create a room. Please sign in and try again.');
       }
 
@@ -37,6 +67,7 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
       const { data: codeData, error: codeError } = await supabase.rpc('generate_room_code');
       
       if (codeError) {
+        console.error('❌ Code generation error:', codeError);
         throw new Error(`Failed to generate room code: ${codeError.message}`);
       }
       
@@ -44,12 +75,14 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         throw new Error('Failed to generate room code');
       }
 
-      // Create room - triggers will automatically set admin_id and create room_member entry
+      // Create room - triggers will handle admin_id and room_member insertion
       const roomData = {
         name: roomName.trim(),
         code: codeData,
-        admin_id: session.user.id,
+        admin_id: session.user.id, // Explicit admin_id for RLS policy
       };
+
+      console.log('🏠 Creating room with data:', roomData);
 
       const { data: room, error: roomError } = await supabase
         .from('rooms')
@@ -57,7 +90,16 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         .select()
         .single();
 
-      if (roomError) throw roomError;
+      if (roomError) {
+        console.error('❌ Room creation error:', roomError);
+        // More specific error handling
+        if (roomError.message.includes('violates row-level security')) {
+          throw new Error('Room creation failed: Please make sure you are properly signed in and try again.');
+        }
+        throw new Error(`Failed to create room: ${roomError.message}`);
+      }
+
+      console.log('✅ Room created successfully:', room);
 
       // Create default files
       const defaultFiles = [
