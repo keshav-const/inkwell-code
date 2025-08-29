@@ -26,34 +26,12 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
     setLoading(true);
 
     try {
-      // Check authentication state with retry mechanism
-      let session = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (!session && attempts < maxAttempts) {
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          throw new Error(`Authentication error: ${sessionError.message}`);
-        }
-        
-        session = currentSession;
-        
-        if (!session && attempts < maxAttempts - 1) {
-          console.log(`No session found, attempt ${attempts + 1}/${maxAttempts}, retrying...`);
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        attempts++;
-      }
+      // Check authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session?.user) {
+      if (sessionError || !session?.user) {
         throw new Error('You must be logged in to create a room. Please sign in and try again.');
       }
-
-      console.log('Creating room with user ID:', session.user.id);
 
       // Generate unique room code
       const { data: codeData, error: codeError } = await supabase.rpc('generate_room_code');
@@ -66,14 +44,12 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         throw new Error('Failed to generate room code');
       }
 
-      // Create room with explicit admin_id
+      // Create room - triggers will automatically set admin_id and create room_member entry
       const roomData = {
         name: roomName.trim(),
         code: codeData,
         admin_id: session.user.id,
       };
-
-      console.log('Inserting room data:', roomData);
 
       const { data: room, error: roomError } = await supabase
         .from('rooms')
@@ -82,17 +58,6 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         .single();
 
       if (roomError) throw roomError;
-
-      // Add creator as admin member
-      const { error: memberError } = await supabase
-        .from('room_members')
-        .insert({
-          room_id: room.id,
-          user_id: session.user.id,
-          role: 'admin'
-        });
-
-      if (memberError) throw memberError;
 
       // Create default files
       const defaultFiles = [
