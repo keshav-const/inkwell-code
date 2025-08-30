@@ -73,35 +73,22 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
     try {
       setLoading(true);
       
-      // Use skipBrowserRedirect to get the URL instead of automatic redirect
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      // Use redirect flow for OAuth to avoid iframe issues
+      const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}`,
-          skipBrowserRedirect: true,
+          redirectTo: `${window.location.origin}/`,
         },
       });
 
       if (error) throw error;
 
-      // Open the OAuth URL in a new tab to avoid iframe restrictions
-      if (data?.url) {
-        const newWindow = window.open(data.url, '_blank', 'noopener,noreferrer');
-        
-        if (!newWindow) {
-          // Fallback if popup is blocked
-          window.location.href = data.url;
-        } else {
-          // Show a message to user about the new tab
-          toast({
-            title: 'Authentication opened',
-            description: 'Please complete authentication in the new tab.',
-          });
-          
-          // Close the modal since auth will continue in new tab
-          onClose();
-        }
-      }
+      // The redirect will happen automatically
+      toast({
+        title: 'Redirecting...',
+        description: 'Redirecting to authentication provider.',
+      });
+      
     } catch (error: any) {
       console.error('OAuth error:', error);
       toast({
@@ -109,7 +96,6 @@ export const AuthModal = ({ isOpen, onClose }: AuthModalProps) => {
         description: error.message || 'Failed to start authentication process.',
         variant: 'destructive',
       });
-    } finally {
       setLoading(false);
     }
   };

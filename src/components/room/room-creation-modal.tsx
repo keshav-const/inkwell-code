@@ -28,38 +28,17 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
     try {
       console.log('🔍 Starting room creation process...');
       
-      // Check authentication with retry mechanism
-      let session = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (!session && attempts < maxAttempts) {
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        console.log(`📋 Auth attempt ${attempts + 1}:`, {
-          hasSession: !!currentSession,
-          hasUser: !!currentSession?.user,
-          userId: currentSession?.user?.id,
-          sessionError: sessionError?.message
-        });
-        
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-          throw new Error(`Authentication error: ${sessionError.message}`);
-        }
-        
-        session = currentSession;
-        
-        if (!session && attempts < maxAttempts - 1) {
-          console.log(`⏳ No session found, retrying in 1 second...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        
-        attempts++;
-      }
+      // Get current authenticated user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
-      if (!session?.user) {
-        console.error('❌ No authenticated user found after retries');
+      console.log('🔍 Current authentication status:', {
+        hasUser: !!user,
+        userId: user?.id,
+        userError: userError?.message
+      });
+      
+      if (userError || !user) {
+        console.error('❌ Authentication error:', userError);
         throw new Error('You must be logged in to create a room. Please sign in and try again.');
       }
 
@@ -75,11 +54,11 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
         throw new Error('Failed to generate room code');
       }
 
-      // Create room - triggers will handle admin_id and room_member insertion
+      // Create room with explicit admin_id
       const roomData = {
         name: roomName.trim(),
         code: codeData,
-        admin_id: session.user.id, // Explicit admin_id for RLS policy
+        admin_id: user.id, // Explicit admin_id for RLS policy
       };
 
       console.log('🏠 Creating room with data:', roomData);
