@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { TopBar } from './top-bar';
-import { EditorPane } from '../editor/editor-pane';
+import { CollaborativeEditor } from '../editor/collaborative-editor';
 import { RightDockTabs } from '../docks/right-dock-tabs';
 import { BottomDockTabs } from '../docks/bottom-dock-tabs';
+import { ShareModal } from '../room/share-modal';
+import { RoomSettingsModal } from '../room/room-settings-modal';
 import type { FileModel } from '@/types/collaboration';
 import { FileManager } from '@/utils/file-manager';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Room {
   id: string;
@@ -32,6 +35,7 @@ interface MainLayoutProps {
   files: FileModel[];
   fileManager: FileManager | null;
   collaboration: any;
+  onRoomUpdated?: (room: Room) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ 
@@ -39,19 +43,23 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   members, 
   files, 
   fileManager, 
-  collaboration 
+  collaboration,
+  onRoomUpdated
 }) => {
+  const { user } = useAuth();
   const [rightDockCollapsed, setRightDockCollapsed] = useState(false);
   const [bottomDockCollapsed, setBottomDockCollapsed] = useState(true);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+
+  const isAdmin = user?.id === room.admin_id;
 
   const handleShare = () => {
-    // Placeholder for share functionality
-    console.log('Share functionality coming soon...');
+    setShareModalOpen(true);
   };
 
   const handleSettings = () => {
-    // Placeholder for settings functionality
-    console.log('Settings functionality coming soon...');
+    setSettingsModalOpen(true);
   };
 
   return (
@@ -74,13 +82,19 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         >
           {/* Editor Pane - Dominant column */}
           <div className="flex-1 overflow-hidden">
-            <EditorPane />
+            <CollaborativeEditor 
+              roomId={room.id}
+              files={files}
+              collaboration={collaboration}
+            />
           </div>
 
           {/* Bottom Dock - Collapsible */}
           <BottomDockTabs 
             isCollapsed={bottomDockCollapsed}
             onToggleCollapse={() => setBottomDockCollapsed(!bottomDockCollapsed)}
+            roomId={room.id}
+            files={files}
           />
         </motion.div>
 
@@ -88,8 +102,27 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <RightDockTabs 
           isCollapsed={rightDockCollapsed}
           onToggleCollapse={() => setRightDockCollapsed(!rightDockCollapsed)}
+          roomId={room.id}
+          members={members}
+          collaboration={collaboration}
         />
       </div>
+      
+      {/* Modals */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        roomCode={room.code}
+        roomName={room.name}
+      />
+      
+      <RoomSettingsModal
+        isOpen={settingsModalOpen}
+        onClose={() => setSettingsModalOpen(false)}
+        room={room}
+        isAdmin={isAdmin}
+        onRoomUpdated={onRoomUpdated || (() => {})}
+      />
     </div>
   );
 };
