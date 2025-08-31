@@ -253,6 +253,7 @@ export const Room = () => {
         files={files}
         fileManager={fileManager}
         collaboration={collaboration}
+        onRoomUpdated={(updatedRoom) => setRoom(updatedRoom)}
       />
     </motion.div>
   );
