@@ -24,6 +24,67 @@ export const BottomDockTabs: React.FC<BottomDockTabsProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('preview');
   
   const activeFile = files.find(f => f.name.endsWith('.html')) || files[0];
+  
+  const getPreviewContent = () => {
+    if (!activeFile) return '<div>No file selected</div>';
+    
+    if (activeFile.name.endsWith('.html')) {
+      return activeFile.content;
+    } else if (activeFile.name.endsWith('.js') || activeFile.name.endsWith('.ts')) {
+      return `
+        <html>
+          <head>
+            <title>JavaScript Preview</title>
+          </head>
+          <body>
+            <div id="output"></div>
+            <script>
+              // Capture console.log output
+              const originalLog = console.log;
+              console.log = function(...args) {
+                const output = document.getElementById('output');
+                const div = document.createElement('div');
+                div.textContent = args.join(' ');
+                output.appendChild(div);
+                originalLog.apply(console, args);
+              };
+              
+              try {
+                ${activeFile.content}
+              } catch (error) {
+                const output = document.getElementById('output');
+                const div = document.createElement('div');
+                div.style.color = 'red';
+                div.textContent = 'Error: ' + error.message;
+                output.appendChild(div);
+              }
+            </script>
+          </body>
+        </html>
+      `;
+    } else if (activeFile.name.endsWith('.css')) {
+      return `
+        <html>
+          <head>
+            <style>${activeFile.content}</style>
+          </head>
+          <body>
+            <h1>CSS Preview</h1>
+            <p>This is a preview of your CSS styles.</p>
+            <div class="example">Example content with your styles applied.</div>
+          </body>
+        </html>
+      `;
+    } else {
+      return `
+        <html>
+          <body>
+            <pre style="padding: 16px; font-family: monospace; background: #f5f5f5; overflow: auto;">${activeFile.content}</pre>
+          </body>
+        </html>
+      `;
+    }
+  };
 
   if (isCollapsed) {
     return (
@@ -106,13 +167,14 @@ export const BottomDockTabs: React.FC<BottomDockTabsProps> = ({
             >
               {activeFile ? (
                 <iframe
-                  srcDoc={activeFile.content}
+                  srcDoc={getPreviewContent()}
                   className="w-full h-full border-0"
                   title="Code Preview"
+                  sandbox="allow-scripts allow-same-origin"
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p>No HTML file to preview</p>
+                  <p>No file to preview</p>
                 </div>
               )}
             </motion.div>
