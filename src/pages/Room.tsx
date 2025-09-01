@@ -41,8 +41,21 @@ export const Room = () => {
   const collaboration = useRealtimeCollaboration({
     roomId: roomId || '',
     userId: user?.id,
-    userName: user?.user_metadata?.full_name || user?.email || 'Anonymous'
+    userName: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Anonymous'
   });
+
+  // Debug user info for presence
+  useEffect(() => {
+    if (user) {
+      console.log('User info for collaboration:', {
+        id: user.id,
+        fullName: user.user_metadata?.full_name,
+        name: user.user_metadata?.name,
+        email: user.email,
+        finalName: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Anonymous'
+      });
+    }
+  }, [user]);
 
   // Load room data
   useEffect(() => {

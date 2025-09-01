@@ -37,8 +37,8 @@ interface PresenceState {
 
 export const useRealtimeCollaboration = ({ 
   roomId, 
-  userId = 'anonymous', 
-  userName = 'Anonymous User' 
+  userId, 
+  userName 
 }: UseRealtimeCollaborationProps) => {
   const [state, setState] = useState<CollaborationState>({
     participants: [],
@@ -54,6 +54,11 @@ export const useRealtimeCollaboration = ({
       await channel.unsubscribe();
     }
 
+    if (!userId || !userName) {
+      console.warn('Cannot join room without userId and userName');
+      return;
+    }
+
     const newChannel = supabase.channel(`room_${room}`, {
       config: {
         presence: {
@@ -66,6 +71,7 @@ export const useRealtimeCollaboration = ({
     newChannel
       .on('presence', { event: 'sync' }, () => {
         const presenceState = newChannel.presenceState();
+        console.log('Presence sync:', presenceState);
         const participants = Object.entries(presenceState).map(([key, presences]) => {
           // presences is an array, get the first one
           const presence = Array.isArray(presences) ? presences[0] : presences;
@@ -81,6 +87,7 @@ export const useRealtimeCollaboration = ({
           };
         });
         
+        console.log('Processed participants:', participants);
         setState(prev => ({...prev, participants, isConnected: true, roomId: room}));
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
@@ -100,7 +107,9 @@ export const useRealtimeCollaboration = ({
 
     // Subscribe to the channel
     const status = await newChannel.subscribe(async (status) => {
+      console.log('Channel subscription status:', status);
       if (status === 'SUBSCRIBED') {
+        console.log('Tracking user presence:', { userId, userName });
         // Track this user's presence
         await newChannel.track({
           name: userName,
@@ -154,7 +163,7 @@ export const useRealtimeCollaboration = ({
 
   // Auto-join room on mount
   useEffect(() => {
-    if (roomId) {
+    if (roomId && userId && userName) {
       joinRoom(roomId);
     }
 
@@ -163,7 +172,7 @@ export const useRealtimeCollaboration = ({
         channel.unsubscribe();
       }
     };
-  }, [roomId, joinRoom]);
+  }, [roomId, userId, userName, joinRoom]);
 
   return {
     ...state,
