@@ -50,16 +50,22 @@ export const useRealtimeCollaboration = ({
 
   // Join room function
   const joinRoom = useCallback(async (room: string) => {
+    console.log('Attempting to join room:', room, { userId, userName });
+    
     if (channel) {
+      console.log('Unsubscribing from existing channel');
       await channel.unsubscribe();
     }
 
     if (!userId || !userName) {
-      console.warn('Cannot join room without userId and userName');
+      console.warn('Cannot join room without userId and userName', { userId, userName });
       return;
     }
 
-    const newChannel = supabase.channel(`room_${room}`, {
+    const channelName = `room_${room}`;
+    console.log('Creating new channel:', channelName);
+    
+    const newChannel = supabase.channel(channelName, {
       config: {
         presence: {
           key: userId
@@ -71,24 +77,33 @@ export const useRealtimeCollaboration = ({
     newChannel
       .on('presence', { event: 'sync' }, () => {
         const presenceState = newChannel.presenceState();
-        console.log('Presence sync:', presenceState);
+        console.log('Presence sync received:', presenceState);
+        
         const participants = Object.entries(presenceState).map(([key, presences]) => {
           // presences is an array, get the first one
           const presence = Array.isArray(presences) ? presences[0] : presences;
           // Safely extract presence data with fallbacks
           const presenceData = presence as any;
           
-          return {
+          const participant = {
             id: key,
             name: presenceData?.name || 'Anonymous',
             status: 'online' as const,
             cursor: presenceData?.cursor || undefined,
             color: presenceData?.color || '#2CA6A4'
           };
+          
+          console.log('Processing participant:', participant);
+          return participant;
         });
         
-        console.log('Processed participants:', participants);
-        setState(prev => ({...prev, participants, isConnected: true, roomId: room}));
+        console.log('All participants processed:', participants);
+        setState(prev => ({
+          ...prev, 
+          participants, 
+          isConnected: true, 
+          roomId: room
+        }));
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
         console.log('User joined:', key, newPresences);
@@ -106,22 +121,28 @@ export const useRealtimeCollaboration = ({
       });
 
     // Subscribe to the channel
-    const status = await newChannel.subscribe(async (status) => {
-      console.log('Channel subscription status:', status);
+    console.log('Subscribing to channel...');
+    const subscriptionResult = await newChannel.subscribe(async (status) => {
+      console.log('Channel subscription status changed:', status);
+      
       if (status === 'SUBSCRIBED') {
-        console.log('Tracking user presence:', { userId, userName });
-        // Track this user's presence
-        await newChannel.track({
+        const presenceData = {
           name: userName,
           online_at: new Date().toISOString(),
           cursor: null,
-          color: generateUserColor(userId)
-        });
+          color: generateUserColor(userId || '')
+        };
+        
+        console.log('Tracking user presence with data:', presenceData);
+        
+        const trackResult = await newChannel.track(presenceData);
+        console.log('Track result:', trackResult);
       }
     });
-
+    
+    console.log('Subscription result:', subscriptionResult);
     setChannel(newChannel);
-  }, [userId, userName, channel]);
+  }, [userId, userName]);
 
   // Leave room function
   const leaveRoom = useCallback(async () => {

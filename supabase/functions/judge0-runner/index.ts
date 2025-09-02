@@ -47,12 +47,17 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing request with method:', req.method);
     const { language, source, stdin = '' }: RunCodeRequest = await req.json();
+    console.log('Request payload:', { language, sourceLength: source?.length });
 
     // Validate input
     if (!language || !source) {
       return new Response(
-        JSON.stringify({ error: 'Language and source code are required' }),
+        JSON.stringify({ 
+          error: 'Language and source code are required',
+          received: { language: !!language, source: !!source }
+        }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -91,16 +96,18 @@ serve(async (req) => {
       `;
     }
 
-    // Rate limiting check (simple in-memory store for demo)
-    // In production, use a proper rate limiter with Redis
-    
     // Judge0 API endpoint
     const judge0Url = 'https://judge0-ce.p.rapidapi.com';
     const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
     
+    console.log('RapidAPI key configured:', !!rapidApiKey);
+    
     if (!rapidApiKey) {
       return new Response(
-        JSON.stringify({ error: 'Judge0 API key not configured' }),
+        JSON.stringify({ 
+          error: 'Judge0 API key not configured. Please add your RapidAPI key to the Supabase Edge Function secrets.',
+          help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to get an API key'
+        }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -109,6 +116,13 @@ serve(async (req) => {
     }
 
     // Submit code for execution
+    console.log('Submitting to Judge0 API...');
+    const submissionPayload = {
+      language_id: languageId,
+      source_code: processedSource,
+      stdin: stdin
+    };
+    
     const submissionResponse = await fetch(`${judge0Url}/submissions?base64_encoded=false&wait=true`, {
       method: 'POST',
       headers: {
@@ -116,21 +130,54 @@ serve(async (req) => {
         'X-RapidAPI-Key': rapidApiKey,
         'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
       },
-      body: JSON.stringify({
-        language_id: languageId,
-        source_code: processedSource,
-        stdin: stdin,
-        expected_output: null
-      })
+      body: JSON.stringify(submissionPayload)
     });
 
+    console.log('Judge0 response status:', submissionResponse.status);
+    
     if (!submissionResponse.ok) {
       const errorText = await submissionResponse.text();
-      console.error('Judge0 API error:', errorText);
-      throw new Error(`Judge0 API error: ${submissionResponse.status}`);
+      console.error('Judge0 API error response:', errorText);
+      
+      // Parse error message for better user feedback
+      let errorMessage = 'Unknown error occurred';
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.message || errorData.error || errorText;
+      } catch {
+        errorMessage = errorText;
+      }
+      
+      if (submissionResponse.status === 401 || submissionResponse.status === 403) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Judge0 API authentication failed',
+            message: 'Please check your RapidAPI key and subscription status',
+            details: errorMessage,
+            help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to manage your subscription'
+          }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          error: 'Judge0 API error',
+          message: errorMessage,
+          status: submissionResponse.status
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     const result: Judge0Response = await submissionResponse.json();
+    console.log('Judge0 result:', { status: result.status, hasOutput: !!result.stdout });
 
     // Process and return results
     const response = {
@@ -141,7 +188,9 @@ serve(async (req) => {
       time: result.time || '0',
       memory: result.memory || 0,
       language: language,
-      success: result.status?.id === 3 // Status ID 3 means "Accepted"
+      success: result.status?.id === 3, // Status ID 3 means "Accepted"
+      output: result.stdout || result.stderr || result.compile_output || 'No output',
+      error: result.stderr || (result.status?.id !== 3 ? result.status?.description : null)
     };
 
     return new Response(
@@ -157,7 +206,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        message: error.message 
+        message: error.message,
+        details: 'Check the function logs for more information'
       }),
       { 
         status: 500, 
