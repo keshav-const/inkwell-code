@@ -80,6 +80,8 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     
     setIsRunning(true);
     try {
+      console.log('Invoking judge0-runner function with:', { language: activeFile.language, contentLength: activeFile.content.length });
+      
       const { data, error } = await supabase.functions.invoke('judge0-runner', {
         body: {
           language: activeFile.language,
@@ -88,7 +90,12 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         }
       });
 
-      if (error) throw error;
+      console.log('Function response:', { data, error });
+
+      if (error) {
+        console.error('Function invocation error:', error);
+        throw error;
+      }
 
       // Show results in toast or terminal
       console.log('Code execution result:', data);
