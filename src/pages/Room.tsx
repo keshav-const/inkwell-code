@@ -47,12 +47,20 @@ export const Room = () => {
   // Debug user info for presence
   useEffect(() => {
     if (user) {
+      const userName = user?.user_metadata?.full_name || 
+                     user?.user_metadata?.name || 
+                     user?.user_metadata?.display_name ||
+                     user?.email?.split('@')[0] || 
+                     'Anonymous';
+      
       console.log('User info for collaboration:', {
         id: user.id,
         fullName: user.user_metadata?.full_name,
         name: user.user_metadata?.name,
+        displayName: user.user_metadata?.display_name,
         email: user.email,
-        finalName: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Anonymous'
+        finalName: userName,
+        allMetadata: user.user_metadata
       });
     }
   }, [user]);

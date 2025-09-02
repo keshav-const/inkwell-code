@@ -91,16 +91,28 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       if (error) throw error;
 
       // Show results in toast or terminal
-      if (data.output) {
+      console.log('Code execution result:', data);
+      
+      if (data.success && data.stdout) {
         toast({
           title: 'Code executed successfully',
-          description: `Output: ${data.output.substring(0, 100)}${data.output.length > 100 ? '...' : ''}`,
+          description: `Output: ${data.stdout.substring(0, 100)}${data.stdout.length > 100 ? '...' : ''}`,
         });
-      } else if (data.error) {
+      } else if (data.error || data.stderr) {
         toast({
           title: 'Execution error',
-          description: data.error,
+          description: data.error || data.stderr || 'Unknown error occurred',
           variant: 'destructive'
+        });
+      } else if (data.output) {
+        toast({
+          title: 'Code executed',
+          description: `Output: ${data.output.substring(0, 100)}${data.output.length > 100 ? '...' : ''}`,
+        });
+      } else {
+        toast({
+          title: 'Code executed',
+          description: 'No output generated',
         });
       }
     } catch (error: any) {
