@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -37,12 +37,30 @@ export const Room = () => {
   const [fileManager, setFileManager] = useState<FileManager | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const collaboration = useRealtimeCollaboration({
     roomId: roomId || '',
     userId: user?.id,
     userName: user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Anonymous'
   });
+
+  // Set loading timeout to prevent infinite loading
+  useEffect(() => {
+    console.log('🏠 Room component mounting, roomId:', roomId);
+    
+    loadingTimeoutRef.current = setTimeout(() => {
+      console.log('⚠️ Room loading timeout reached, forcing loading to false');
+      setLoading(false);
+      setError('Room loading timed out. Please try refreshing the page.');
+    }, 15000); // 15 second timeout
+
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current);
+      }
+    };
+  }, [roomId]);
 
   // Debug user info for presence
   useEffect(() => {
@@ -67,10 +85,17 @@ export const Room = () => {
 
   // Load room data
   useEffect(() => {
-    if (!roomId || !user) return;
+    console.log('🔄 Room data loading effect triggered:', { roomId, userId: user?.id, hasUser: !!user });
+    
+    if (!roomId || !user) {
+      console.log('❌ Missing roomId or user, skipping room data load');
+      return;
+    }
 
     const loadRoomData = async () => {
       try {
+        console.log('🏠 Starting room data load for:', roomId);
+        
         // Fetch room details
         const { data: roomData, error: roomError } = await supabase
           .from('rooms')
@@ -79,6 +104,7 @@ export const Room = () => {
           .single();
 
         if (roomError) {
+          console.error('❌ Room fetch error:', roomError);
           if (roomError.code === 'PGRST116') {
             setError('Room not found or you do not have access to this room.');
           } else {
@@ -87,6 +113,7 @@ export const Room = () => {
           return;
         }
 
+        console.log('✅ Room data fetched:', roomData);
         setRoom(roomData);
 
         // Fetch room members (simpler query without problematic join)
@@ -95,7 +122,12 @@ export const Room = () => {
           .select('*')
           .eq('room_id', roomId);
 
-        if (membersError) throw membersError;
+        if (membersError) {
+          console.error('❌ Members fetch error:', membersError);
+          throw membersError;
+        }
+        
+        console.log('👥 Members data fetched:', membersData?.length || 0, 'members');
         
         // Fetch profiles separately to avoid join issues
         const memberIds = (membersData || []).map(m => m.user_id);
@@ -103,6 +135,8 @@ export const Room = () => {
           .from('profiles')
           .select('*')
           .in('id', memberIds);
+        
+        console.log('📋 Profiles data fetched:', profilesData?.length || 0, 'profiles');
         
         // Combine the data
         const typedMembers: RoomMember[] = (membersData || []).map(member => {
@@ -125,13 +159,19 @@ export const Room = () => {
         setMembers(typedMembers);
 
         // Fetch room files
+        console.log('📁 Fetching room files...');
         const { data: filesData, error: filesError } = await supabase
           .from('files')
           .select('*')
           .eq('room_id', roomId)
           .order('created_at', { ascending: true });
 
-        if (filesError) throw filesError;
+        if (filesError) {
+          console.error('❌ Files fetch error:', filesError);
+          throw filesError;
+        }
+
+        console.log('📄 Files data fetched:', filesData?.length || 0, 'files');
 
         // Convert files to FileModel format
         const fileModels: FileModel[] = (filesData || []).map(file => ({
@@ -148,12 +188,21 @@ export const Room = () => {
         // Initialize file manager
         const manager = new FileManager(fileModels);
         setFileManager(manager);
+        
+        console.log('✅ Room data loading completed successfully');
 
       } catch (error: any) {
-        console.error('Failed to load room data:', error);
+        console.error('❌ Failed to load room data:', error);
         setError(error.message || 'Failed to load room data');
       } finally {
+        console.log('🏁 Room data loading finished, setting loading to false');
         setLoading(false);
+        
+        // Clear the loading timeout since we finished loading
+        if (loadingTimeoutRef.current) {
+          clearTimeout(loadingTimeoutRef.current);
+          loadingTimeoutRef.current = null;
+        }
       }
     };
 
