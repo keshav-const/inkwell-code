@@ -74,7 +74,12 @@ export const CodeTerminal: React.FC<CodeTerminalProps> = ({
   
 File execution:
   The terminal will automatically run code from your active file when you use 'run' command.
-  Supported languages: JavaScript, Python, C++, and more.`
+  Supported languages: JavaScript, Python, C++, Java, C#, Go, Rust, PHP, Ruby, and more.
+  
+Troubleshooting:
+  - Make sure you have an active file selected in the editor
+  - Check that your code syntax is correct for the selected language
+  - View the browser console for detailed error messages`
               }
             : output
         ));
@@ -86,37 +91,127 @@ File execution:
         if (!activeFile) {
           setOutputs(prev => prev.map(output => 
             output.id === newOutput.id 
-              ? { ...output, output: 'No active file to run', error: 'true' }
+              ? { ...output, output: 'No active file to run. Please select a file in the editor first.', error: 'true' }
               : output
           ));
           setIsExecuting(false);
           return;
         }
 
-        // Execute the active file using Judge0
-        const { data, error } = await supabase.functions.invoke('judge0-runner', {
-          body: {
-            language: activeFile.language,
-            source: activeFile.content,
-            stdin: ''
-          }
+        console.log('🏃 Executing code via judge0-runner:', {
+          language: activeFile.language,
+          contentLength: activeFile.content?.length || 0
         });
 
-        if (error) throw error;
+        try {
+          // Execute the active file using Judge0
+          const { data, error } = await supabase.functions.invoke('judge0-runner', {
+            body: {
+              language: activeFile.language,
+              source: activeFile.content,
+              stdin: ''
+            }
+          });
 
-        const output = data.output || data.error || 'No output';
-        const hasError = !!data.error;
+          console.log('📤 Judge0 response:', { data, error });
 
-        setOutputs(prev => prev.map(output => 
-          output.id === newOutput.id 
-            ? {
-                ...output,
-                output: `Running ${activeFile.name}...\n${output}`,
-                error: hasError ? 'true' : undefined,
-                exitCode: data.exitCode || 0
-              }
-            : output
-        ));
+          if (error) {
+            console.error('❌ Function invocation failed:', error);
+            let errorMessage = `Failed to execute code: ${error.message}`;
+            
+            if (error.message?.includes('non-2xx status code')) {
+              errorMessage += '\n\n🔧 Troubleshooting:\n• Check if RapidAPI key is configured\n• Verify Judge0 service is available\n• Check Edge Function logs for details';
+            }
+            
+            setOutputs(prev => prev.map(output => 
+              output.id === newOutput.id 
+                ? { ...output, output: errorMessage, error: 'true' }
+                : output
+            ));
+            setIsExecuting(false);
+            return;
+          }
+
+          // Handle response data
+          if (data?.error) {
+            console.error('❌ Judge0 API error:', data);
+            let errorMessage = `Judge0 Error: ${data.error}`;
+            
+            if (data.message?.includes('authentication') || data.message?.includes('401')) {
+              errorMessage += '\n\n💡 This appears to be an API authentication issue.\nPlease check that the RapidAPI key is properly configured.';
+            } else if (data.message?.includes('subscription')) {
+              errorMessage += '\n\n💡 Your RapidAPI subscription may need to be activated.';
+            } else if (data.help) {
+              errorMessage += `\n\n${data.help}`;
+            }
+            
+            setOutputs(prev => prev.map(output => 
+              output.id === newOutput.id 
+                ? { ...output, output: errorMessage, error: 'true' }
+                : output
+            ));
+            setIsExecuting(false);
+            return;
+          }
+
+          // Success case
+          const stdout = data?.stdout || '';
+          const stderr = data?.stderr || '';
+          const compile_output = data?.compile_output || '';
+          const status = data?.status || 'Unknown';
+          
+          let output = `Running ${activeFile.name}...\n`;
+          
+          if (stdout) {
+            output += `✅ Output:\n${stdout}\n`;
+          }
+          
+          if (compile_output) {
+            output += `🔧 Compile Output:\n${compile_output}\n`;
+          }
+          
+          if (stderr) {
+            output += `❌ Errors:\n${stderr}\n`;
+          }
+          
+          if (!stdout && !stderr && !compile_output) {
+            output += '✅ Code executed successfully (no output generated)';
+          }
+          
+          output += `\n📊 Status: ${status}`;
+          
+          if (data.time) {
+            output += ` | ⏱️ Time: ${data.time}s`;
+          }
+          
+          if (data.memory) {
+            output += ` | 🧠 Memory: ${data.memory} KB`;
+          }
+          
+          const hasError = data?.success === false || !!stderr;
+
+          setOutputs(prev => prev.map(outputItem => 
+            outputItem.id === newOutput.id 
+              ? {
+                  ...outputItem,
+                  output,
+                  error: hasError ? 'true' : undefined,
+                  exitCode: data?.exitCode || (hasError ? 1 : 0)
+                }
+              : outputItem
+          ));
+        } catch (runError: any) {
+          console.error('❌ Run command failed:', runError);
+          setOutputs(prev => prev.map(output => 
+            output.id === newOutput.id 
+              ? { 
+                  ...output, 
+                  output: `Failed to execute code: ${runError.message}\n\n🔧 Try refreshing the page or check your connection.`, 
+                  error: 'true' 
+                }
+              : output
+          ));
+        }
       } else {
         // For other commands, show a helpful message
         setOutputs(prev => prev.map(output => 
@@ -176,8 +271,11 @@ File execution:
         {/* Welcome message */}
         {outputs.length === 0 && (
           <div className="space-y-1">
-            <div className="text-green-500">Welcome to Inkwell Code Terminal</div>
+            <div className="text-green-500">🚀 Welcome to Inkwell Code Terminal</div>
             <div className="text-gray-400">Type 'help' for available commands or 'run' to execute your code.</div>
+            <div className="text-gray-500 text-xs">
+              {activeFile ? `Active file: ${activeFile.name} (${activeFile.language})` : 'No active file selected'}
+            </div>
           </div>
         )}
 
@@ -216,7 +314,7 @@ File execution:
             autoFocus
           />
           {isExecuting && (
-            <span className="text-yellow-400 animate-pulse">Running...</span>
+            <span className="text-yellow-400 animate-pulse">⚡ Running...</span>
           )}
         </form>
 
