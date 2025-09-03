@@ -98,15 +98,23 @@ serve(async (req) => {
 
     // Judge0 API endpoint
     const judge0Url = 'https://judge0-ce.p.rapidapi.com';
-    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY');
     
+    // Try multiple possible environment variable names for the API key
+    const rapidApiKey = Deno.env.get('RAPIDAPI_KEY') || 
+                       Deno.env.get('RAPID_API_KEY') || 
+                       Deno.env.get('JUDGE0_API_KEY');
+    
+    console.log('Available env vars:', Object.keys(Deno.env.toObject()));
     console.log('RapidAPI key configured:', !!rapidApiKey);
+    console.log('RapidAPI key length:', rapidApiKey?.length || 0);
     
     if (!rapidApiKey) {
+      console.error('No RapidAPI key found in environment variables');
       return new Response(
         JSON.stringify({ 
-          error: 'Judge0 API key not configured. Please add your RapidAPI key to the Supabase Edge Function secrets.',
-          help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to get an API key'
+          error: 'Judge0 API key not configured. Please check that RAPIDAPI_KEY is set in Supabase secrets.',
+          help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to get an API key',
+          available_env_vars: Object.keys(Deno.env.toObject()).filter(k => k.includes('API'))
         }),
         { 
           status: 500, 
