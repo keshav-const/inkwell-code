@@ -123,15 +123,20 @@ serve(async (req) => {
       );
     }
 
+    // Encode source code in base64 to handle UTF-8 issues
+    const encodedSource = btoa(processedSource);
+    const encodedStdin = stdin ? btoa(stdin) : '';
+
     // Submit code for execution
-    console.log('Submitting to Judge0 API...');
+    console.log('Submitting to Judge0 API with base64 encoding...');
     const submissionPayload = {
       language_id: languageId,
-      source_code: processedSource,
-      stdin: stdin
+      source_code: encodedSource,
+      stdin: encodedStdin,
+      redirect_stderr_to_stdout: false
     };
     
-    const submissionResponse = await fetch(`${judge0Url}/submissions?base64_encoded=false&wait=true`, {
+    const submissionResponse = await fetch(`${judge0Url}/submissions?base64_encoded=true&wait=false`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -141,11 +146,11 @@ serve(async (req) => {
       body: JSON.stringify(submissionPayload)
     });
 
-    console.log('Judge0 response status:', submissionResponse.status);
+    console.log('Judge0 submission response status:', submissionResponse.status);
     
     if (!submissionResponse.ok) {
       const errorText = await submissionResponse.text();
-      console.error('Judge0 API error response:', errorText);
+      console.error('Judge0 API submission error response:', errorText);
       
       // Parse error message for better user feedback
       let errorMessage = 'Unknown error occurred';
@@ -173,7 +178,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ 
-          error: 'Judge0 API error',
+          error: 'Judge0 API submission error',
           message: errorMessage,
           status: submissionResponse.status
         }),
@@ -184,21 +189,89 @@ serve(async (req) => {
       );
     }
 
-    const result: Judge0Response = await submissionResponse.json();
-    console.log('Judge0 result:', { status: result.status, hasOutput: !!result.stdout });
+    const submissionResult = await submissionResponse.json();
+    console.log('Judge0 submission result:', submissionResult);
+    
+    if (!submissionResult.token) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'No submission token received from Judge0',
+          details: submissionResult
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Wait and retrieve the execution result
+    const token = submissionResult.token;
+    let result: Judge0Response | null = null;
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+      
+      const resultResponse = await fetch(
+        `${judge0Url}/submissions/${token}?base64_encoded=true`,
+        {
+          method: 'GET',
+          headers: {
+            'X-RapidAPI-Key': rapidApiKey,
+            'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+          },
+        }
+      );
+
+      if (resultResponse.ok) {
+        result = await resultResponse.json();
+        console.log('Judge0 result attempt', attempts + 1, ':', { 
+          status: result?.status, 
+          hasOutput: !!(result?.stdout || result?.stderr),
+          statusId: result?.status?.id 
+        });
+        
+        // Status ID 1 = In Queue, 2 = Processing, 3 = Accepted (finished)
+        if (result?.status?.id && result.status.id > 2) {
+          break;
+        }
+      }
+      
+      attempts++;
+    }
+    
+    if (!result) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to retrieve execution result from Judge0',
+          message: 'Execution timed out or failed to complete'
+        }),
+        { 
+          status: 502, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Decode base64 encoded outputs
+    const decodedStdout = result.stdout ? atob(result.stdout) : '';
+    const decodedStderr = result.stderr ? atob(result.stderr) : '';
+    const decodedCompileOutput = result.compile_output ? atob(result.compile_output) : '';
 
     // Process and return results
     const response = {
-      stdout: result.stdout || '',
-      stderr: result.stderr || '',
-      compile_output: result.compile_output || '',
+      stdout: decodedStdout,
+      stderr: decodedStderr,
+      compile_output: decodedCompileOutput,
       status: result.status?.description || 'Unknown',
       time: result.time || '0',
       memory: result.memory || 0,
       language: language,
       success: result.status?.id === 3, // Status ID 3 means "Accepted"
-      output: result.stdout || result.stderr || result.compile_output || 'No output',
-      error: result.stderr || (result.status?.id !== 3 ? result.status?.description : null)
+      output: decodedStdout || decodedStderr || decodedCompileOutput || 'No output',
+      error: decodedStderr || (result.status?.id !== 3 ? result.status?.description : null)
     };
 
     return new Response(
