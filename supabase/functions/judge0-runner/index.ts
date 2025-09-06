@@ -123,9 +123,9 @@ serve(async (req) => {
       );
     }
 
-    // Encode source code in base64 to handle UTF-8 issues
-    const encodedSource = btoa(processedSource);
-    const encodedStdin = stdin ? btoa(stdin) : '';
+    // Encode source code in base64 to handle UTF-8 issues properly
+    const encodedSource = btoa(unescape(encodeURIComponent(processedSource)));
+    const encodedStdin = stdin ? btoa(unescape(encodeURIComponent(stdin))) : '';
 
     // Submit code for execution
     console.log('Submitting to Judge0 API with base64 encoding...');
@@ -136,51 +136,74 @@ serve(async (req) => {
       redirect_stderr_to_stdout: false
     };
     
-    const submissionResponse = await fetch(`${judge0Url}/submissions?base64_encoded=true&wait=false`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-RapidAPI-Key': rapidApiKey,
-        'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
-      },
-      body: JSON.stringify(submissionPayload)
-    });
-
-    console.log('Judge0 submission response status:', submissionResponse.status);
+    let submissionResponse;
+    let submissionResult;
     
-    if (!submissionResponse.ok) {
-      const errorText = await submissionResponse.text();
-      console.error('Judge0 API submission error response:', errorText);
+    try {
+      submissionResponse = await fetch(`${judge0Url}/submissions?base64_encoded=true&wait=false`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-RapidAPI-Key': rapidApiKey,
+          'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+        },
+        body: JSON.stringify(submissionPayload)
+      });
+
+      console.log('Judge0 submission response status:', submissionResponse.status);
       
-      // Parse error message for better user feedback
-      let errorMessage = 'Unknown error occurred';
-      try {
-        const errorData = JSON.parse(errorText);
-        errorMessage = errorData.message || errorData.error || errorText;
-      } catch {
-        errorMessage = errorText;
-      }
-      
-      if (submissionResponse.status === 401 || submissionResponse.status === 403) {
+      if (!submissionResponse.ok) {
+        const errorText = await submissionResponse.text();
+        console.error('Judge0 API submission error response:', errorText);
+        
+        // Parse error message for better user feedback
+        let errorMessage = 'Unknown error occurred';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorData.error || errorText;
+        } catch {
+          errorMessage = errorText;
+        }
+        
+        if (submissionResponse.status === 401 || submissionResponse.status === 403) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Judge0 API authentication failed',
+              message: 'Please check your RapidAPI key and subscription status',
+              details: errorMessage,
+              help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to manage your subscription'
+            }),
+            { 
+              status: 403, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          );
+        }
+        
         return new Response(
           JSON.stringify({ 
-            error: 'Judge0 API authentication failed',
-            message: 'Please check your RapidAPI key and subscription status',
-            details: errorMessage,
-            help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to manage your subscription'
+            error: 'Judge0 API submission error',
+            message: errorMessage,
+            status: submissionResponse.status,
+            judge0_response: errorText
           }),
           { 
-            status: 403, 
+            status: 502, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
       }
+
+      submissionResult = await submissionResponse.json();
+      console.log('Judge0 submission result:', submissionResult);
       
+    } catch (error) {
+      console.error('Judge0 submission fetch error:', error);
       return new Response(
         JSON.stringify({ 
-          error: 'Judge0 API submission error',
-          message: errorMessage,
-          status: submissionResponse.status
+          error: 'Judge0 API network error',
+          message: error.message,
+          details: 'Failed to connect to Judge0 API'
         }),
         { 
           status: 502, 
@@ -188,9 +211,6 @@ serve(async (req) => {
         }
       );
     }
-
-    const submissionResult = await submissionResponse.json();
-    console.log('Judge0 submission result:', submissionResult);
     
     if (!submissionResult.token) {
       return new Response(
