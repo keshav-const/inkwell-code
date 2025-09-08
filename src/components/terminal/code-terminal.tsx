@@ -292,10 +292,31 @@ Troubleshooting:
               <span className="text-white">{output.command}</span>
             </div>
             {output.output && (
-              <div className={`ml-4 whitespace-pre-wrap ${
-                output.error ? 'text-red-400' : 'text-gray-300'
-              }`}>
-                {output.output}
+              <div className="ml-4 whitespace-pre-wrap">
+                {output.output.split('\n').map((line, index) => {
+                  const isStderr = line.includes('❌ Errors:') || 
+                                   (output.output.includes('❌ Errors:') && 
+                                    output.output.indexOf(line) > output.output.indexOf('❌ Errors:') &&
+                                    (output.output.indexOf('📊 Status:') === -1 || 
+                                     output.output.indexOf(line) < output.output.indexOf('📊 Status:')));
+                  const isError = output.error === 'true' || line.includes('❌') || line.includes('Error:');
+                  const isSuccess = line.includes('✅') || line.includes('Output:');
+                  const isInfo = line.includes('📊') || line.includes('⏱️') || line.includes('🧠');
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`${
+                        isStderr || isError ? 'text-red-400' :
+                        isSuccess ? 'text-green-400' :
+                        isInfo ? 'text-blue-400' :
+                        'text-gray-300'
+                      }`}
+                    >
+                      {line}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </motion.div>
