@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { PrimaryButton } from '../ui/primary-button';
-import { CodeIcon, SettingsIcon, ShareIcon, ChevronDownIcon, UserIcon, LogOutIcon } from '../icons/hand-drawn-icons';
+import { CodeIcon, SettingsIcon, ShareIcon, ChevronDownIcon, UsersIcon } from '../icons/hand-drawn-icons';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProjectManager } from '@/components/projects/project-manager';
+import type { FileModel } from '@/types/collaboration';
 
 interface TopBarProps {
   roomId?: string;
   branchName?: string;
+  currentFile?: FileModel;
   onShareClick?: () => void;
   onSettingsClick?: () => void;
+  onLoadProject?: (code: string, language: string) => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
   roomId = "main",
   branchName = "main",
+  currentFile,
   onShareClick,
-  onSettingsClick
+  onSettingsClick,
+  onLoadProject
 }) => {
   const { user, isAuthenticated, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -79,6 +86,11 @@ export const TopBar: React.FC<TopBarProps> = ({
       <div className="flex items-center space-x-2">
         {isAuthenticated ? (
           <>
+            <ProjectManager 
+              currentFile={currentFile}
+              onLoadProject={onLoadProject}
+            />
+            
             <PrimaryButton
               variant="ghost"
               size="sm"
@@ -121,7 +133,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuItem className="flex items-center space-x-2">
-                  <UserIcon size={16} />
+                  <UsersIcon size={16} />
                   <div className="flex flex-col">
                     <span className="font-medium">{getUserDisplayName()}</span>
                     <span className="text-xs text-muted-foreground">{user?.email}</span>
@@ -129,7 +141,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="flex items-center space-x-2 text-red-600 hover:text-red-700">
-                  <LogOutIcon size={16} />
+                  <LogOut size={16} />
                   <span>Sign Out</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -142,7 +154,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onClick={() => setShowAuthModal(true)}
             className="flex items-center space-x-2"
           >
-            <UserIcon size={16} />
+            <UsersIcon size={16} />
             <span>Sign In</span>
           </PrimaryButton>
         )}
