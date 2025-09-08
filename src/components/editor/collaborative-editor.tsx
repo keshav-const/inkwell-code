@@ -4,10 +4,15 @@ import Editor from '@monaco-editor/react';
 import { PrimaryButton } from '../ui/primary-button';
 import { ChevronDownIcon, PlayIcon } from '../icons/hand-drawn-icons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from '@/hooks/use-toast';
 import { inkwellDarkTheme, inkwellLightTheme } from '@/utils/monaco-themes';
+import { getDefaultTemplate } from '@/utils/default-templates';
+import { Play, Settings } from 'lucide-react';
 import type { FileModel } from '@/types/collaboration';
 
 interface CollaborativeEditorProps {
@@ -51,6 +56,8 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const [newFileName, setNewFileName] = useState('');
   const [showNewFile, setShowNewFile] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [showStdinDialog, setShowStdinDialog] = useState(false);
+  const [stdinInput, setStdinInput] = useState('');
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
@@ -88,8 +95,13 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     }
   }, [activeFile, user, collaboration]);
 
-  const handleRunCode = useCallback(async () => {
+  const handleRunCode = useCallback(async (withStdin = false) => {
     if (!activeFile || isRunning) return;
+    
+    if (withStdin) {
+      setShowStdinDialog(true);
+      return;
+    }
     
     setIsRunning(true);
     setExecutionStatus('running');
@@ -100,7 +112,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         body: {
           language: activeFile.language,
           source: activeFile.content,
-          stdin: ''
+          stdin: stdinInput
         }
       });
 
@@ -112,7 +124,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         throw error;
       }
 
-      // Show results in toast or terminal
+      // Show results in toast
       console.log('Code execution result:', data);
       
       if (data.success && data.stdout) {
@@ -151,16 +163,23 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       });
     } finally {
       setIsRunning(false);
+      setStdinInput('');
       // Reset status after 3 seconds
       setTimeout(() => setExecutionStatus('idle'), 3000);
     }
-  }, [activeFile, isRunning]);
+  }, [activeFile, isRunning, stdinInput]);
+
+  const runWithStdin = useCallback(async () => {
+    setShowStdinDialog(false);
+    await handleRunCode(false);
+  }, [handleRunCode]);
 
   const createNewFile = useCallback(async () => {
     if (!newFileName.trim() || !user) return;
 
     const extension = newFileName.includes('.') ? newFileName.split('.').pop() : 'txt';
     const language = getLanguageFromExtension(extension || 'txt');
+    const defaultContent = getDefaultTemplate(language);
 
     try {
       const { data, error } = await supabase
@@ -168,7 +187,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         .insert({
           room_id: roomId,
           name: newFileName,
-          content: '',
+          content: defaultContent,
           language,
           type: 'file'
         })
@@ -183,7 +202,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       
       toast({
         title: 'File created',
-        description: `${newFileName} has been created successfully.`
+        description: `${newFileName} has been created with a starter template.`
       });
     } catch (error: any) {
       console.error('Failed to create file:', error);
@@ -343,12 +362,23 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
             {isDarkTheme ? '☀️' : '🌙'}
           </button>
 
+          {/* Run with Input Button */}
+          <PrimaryButton
+            variant="ghost"
+            size="sm"
+            onClick={() => handleRunCode(true)}
+            disabled={isRunning || !activeFile}
+            className="flex items-center space-x-2"
+          >
+            <Settings size={14} />
+          </PrimaryButton>
+
           {/* Run Button */}
           <PrimaryButton
             variant="primary"
             size="sm"
             glow
-            onClick={handleRunCode}
+            onClick={() => handleRunCode(false)}
             disabled={isRunning || !activeFile}
             className="flex items-center space-x-2"
           >
@@ -443,6 +473,48 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
           </div>
         )}
       </div>
+      
+      {/* Stdin Input Dialog */}
+      <Dialog open={showStdinDialog} onOpenChange={setShowStdinDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Provide Input</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="stdin">Input for your program (stdin):</Label>
+              <textarea
+                id="stdin"
+                placeholder="Enter input here..."
+                value={stdinInput}
+                onChange={(e) => setStdinInput(e.target.value)}
+                className="w-full min-h-24 px-3 py-2 text-sm bg-surface-primary border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring resize-vertical"
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">
+                Each line will be provided as input to your program
+              </p>
+            </div>
+            <div className="flex space-x-2">
+              <PrimaryButton
+                onClick={runWithStdin}
+                disabled={isRunning}
+                className="flex-1"
+              >
+                <Play size={16} className="mr-2" />
+                {isRunning ? 'Running...' : 'Run with Input'}
+              </PrimaryButton>
+              <PrimaryButton
+                variant="ghost"
+                onClick={() => setShowStdinDialog(false)}
+                disabled={isRunning}
+              >
+                Cancel
+              </PrimaryButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };

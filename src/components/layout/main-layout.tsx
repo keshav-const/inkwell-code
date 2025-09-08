@@ -6,6 +6,8 @@ import { RightDockTabs } from '../docks/right-dock-tabs';
 import { BottomDockTabs } from '../docks/bottom-dock-tabs';
 import { ShareModal } from '../room/share-modal';
 import { RoomSettingsModal } from '../room/room-settings-modal';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import type { FileModel } from '@/types/collaboration';
 import { FileManager } from '@/utils/file-manager';
 import { useAuth } from '@/hooks/use-auth';
@@ -62,14 +64,54 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     setSettingsModalOpen(true);
   };
 
+  const handleUpdateFile = async (fileId: string, newContent: string, newLanguage?: string) => {
+    try {
+      const updateData: any = { 
+        content: newContent,
+        updated_at: new Date().toISOString()
+      };
+      
+      if (newLanguage) {
+        updateData.language = newLanguage;
+      }
+
+      const { error } = await supabase
+        .from('files')
+        .update(updateData)
+        .eq('id', fileId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Project loaded',
+        description: 'Your code has been loaded from the saved project.',
+      });
+    } catch (error: any) {
+      console.error('Failed to update file:', error);
+      toast({
+        title: 'Failed to load project',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
       {/* Top Command Bar */}
       <TopBar 
-        roomId={room.id}
+        roomId={room?.code || room?.id?.substring(0, 8)}
         branchName="main"
+        currentFile={files.find(f => f.id === collaboration?.activeFileId) || files[0]}
         onShareClick={handleShare}
         onSettingsClick={handleSettings}
+        onLoadProject={(code, language) => {
+          // Find active file or first file and update it
+          const activeFile = files.find(f => f.id === collaboration?.activeFileId) || files[0];
+          if (activeFile) {
+            handleUpdateFile(activeFile.id, code, language);
+          }
+        }}
       />
 
       {/* Main Content Area */}
