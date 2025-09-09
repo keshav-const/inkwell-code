@@ -14,6 +14,7 @@ import { inkwellDarkTheme, inkwellLightTheme } from '@/utils/monaco-themes';
 import { getDefaultTemplate } from '@/utils/default-templates';
 import { Play, Settings } from 'lucide-react';
 import type { FileModel } from '@/types/collaboration';
+import { CursorDecorationManager, type RemoteCursor } from './cursor-decorations';
 
 interface CollaborativeEditorProps {
   className?: string;
@@ -58,6 +59,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [showStdinDialog, setShowStdinDialog] = useState(false);
   const [stdinInput, setStdinInput] = useState('');
+  const [cursorManager, setCursorManager] = useState<CursorDecorationManager | null>(null);
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
@@ -66,6 +68,22 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       setActiveFileId(files[0].id);
     }
   }, [files, activeFileId]);
+
+  // Update cursor decorations when participants change
+  useEffect(() => {
+    if (cursorManager && collaboration.participants) {
+      const remoteCursors: RemoteCursor[] = collaboration.participants
+        .filter((p: any) => p.id !== user?.id && p.cursor)
+        .map((p: any) => ({
+          userId: p.id,
+          userName: p.name,
+          position: { line: p.cursor.line, column: p.cursor.column },
+          color: p.color || '#2CA6A4'
+        }));
+      
+      cursorManager.updateCursors(remoteCursors);
+    }
+  }, [cursorManager, collaboration.participants, user?.id]);
 
   const handleEditorChange = useCallback(async (value: string | undefined) => {
     if (!activeFile || !user || !value) return;
@@ -430,6 +448,18 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
               // Define custom themes
               monaco.editor.defineTheme('inkwell-dark', inkwellDarkTheme);
               monaco.editor.defineTheme('inkwell-light', inkwellLightTheme);
+            }}
+            onMount={(editor, monaco) => {
+              // Initialize cursor decoration manager
+              const manager = new CursorDecorationManager(editor);
+              setCursorManager(manager);
+
+              // Track cursor position changes
+              editor.onDidChangeCursorPosition((e) => {
+                if (collaboration.updateCursor && user) {
+                  collaboration.updateCursor(e.position.lineNumber, e.position.column);
+                }
+              });
             }}
             options={{
               fontFamily: 'Fira Code, Consolas, monospace',

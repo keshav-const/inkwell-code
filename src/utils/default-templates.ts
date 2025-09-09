@@ -28,16 +28,26 @@ export const DEFAULT_HTML_TEMPLATE = `<!DOCTYPE html>
     h1 { color: #333; margin-bottom: 1rem; }
     p { color: #666; margin-bottom: 2rem; }
     button {
-      background: #667eea; color: white; border: none;
-      padding: 12px 24px; border-radius: 8px; cursor: pointer;
-      font-size: 16px; transition: all 0.3s ease;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.3s ease;
     }
     button:hover {
       background: #5a6fd8;
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
-    .message { margin-top: 1.5rem; font-size: 1.2rem; color: #333; font-weight: bold; }
+    .message {
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
+      color: #333;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
