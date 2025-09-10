@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Copy } from 'lucide-react';
+import { getDefaultTemplate } from '@/utils/default-templates';
 
 interface RoomCreationModalProps {
   isOpen: boolean;
@@ -87,23 +88,7 @@ export const RoomCreationModal = ({ isOpen, onClose, onRoomCreated }: RoomCreati
           name: 'index.html',
           type: 'file' as const,
           language: 'html',
-          content: `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Project</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Welcome to CodeCollabs!</h1>
-        <p>Start editing this file to see changes in real-time.</p>
-        <button onclick="greet()">Click me!</button>
-    </div>
-    <script src="main.js"></script>
-</body>
-</html>`
+          content: getDefaultTemplate('html')
         },
         {
           room_id: room.id,
