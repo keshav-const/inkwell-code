@@ -113,7 +113,7 @@ export const useRealtimeCollaboration = ({
       })
       .on('broadcast', { event: 'cursor-move' }, (payload) => {
         console.log('Cursor moved:', payload);
-        // Handle cursor position updates
+        // Handle cursor position updates - this will be handled via presence tracking
       })
       .on('broadcast', { event: 'code-change' }, (payload) => {
         console.log('Code changed:', payload);
