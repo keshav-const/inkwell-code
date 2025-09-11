@@ -181,4 +181,14 @@ Deep dark slate grays with warm terracotta and desaturated teal accents
   .dock-tab.active {
     @apply bg-surface-tertiary text-foreground border-primary;
   }
+
+  /* Scrollbar utilities for file tabs */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
 }

@@ -60,6 +60,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   const [showStdinDialog, setShowStdinDialog] = useState(false);
   const [stdinInput, setStdinInput] = useState('');
   const [cursorManager, setCursorManager] = useState<CursorDecorationManager | null>(null);
+  const [terminalOutput, setTerminalOutput] = useState<string>('');
 
   const activeFile = files.find(f => f.id === activeFileId) || files[0];
 
@@ -142,35 +143,54 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
         throw error;
       }
 
-      // Show results in toast
+      // Send results to terminal and show brief toast
       console.log('Code execution result:', data);
       
+      // Prepare terminal output
+      let terminalResult = `Running ${activeFile.name}...\n`;
+      
       if (data.success && data.stdout) {
+        terminalResult += `✅ Output:\n${data.stdout}\n`;
         setExecutionStatus('success');
         toast({
           title: 'Code executed successfully',
-          description: `Output: ${data.stdout.substring(0, 100)}${data.stdout.length > 100 ? '...' : ''}`,
+          description: 'Check terminal for full output',
         });
       } else if (data.error || data.stderr) {
+        terminalResult += `❌ Errors:\n${data.error || data.stderr}\n`;
         setExecutionStatus('error');
         toast({
           title: 'Execution error',
-          description: data.error || data.stderr || 'Unknown error occurred',
+          description: 'Check terminal for details',
           variant: 'destructive'
         });
       } else if (data.output) {
+        terminalResult += `✅ Output:\n${data.output}\n`;
         setExecutionStatus('success');
         toast({
           title: 'Code executed',
-          description: `Output: ${data.output.substring(0, 100)}${data.output.length > 100 ? '...' : ''}`,
+          description: 'Check terminal for full output',
         });
       } else {
+        terminalResult += '✅ Code executed successfully (no output generated)\n';
         setExecutionStatus('success');
         toast({
           title: 'Code executed',
           description: 'No output generated',
         });
       }
+      
+      if (data.time) {
+        terminalResult += `⏱️ Execution time: ${data.time}s\n`;
+      }
+      
+      // Send to terminal via custom event
+      window.dispatchEvent(new CustomEvent('code-execution-result', {
+        detail: { 
+          output: terminalResult,
+          isError: !data.success || !!data.error || !!data.stderr
+        }
+      }));
     } catch (error: any) {
       console.error('Failed to run code:', error);
       setExecutionStatus('error');
@@ -327,13 +347,13 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
       {/* Editor Header */}
       <div className="flex items-center justify-between p-3 bg-surface-secondary border-b border-border">
         <div className="flex items-center space-x-4">
-          {/* File Tabs */}
-          <div className="flex space-x-1">
+          {/* File Tabs - Scrollable */}
+          <div className="flex space-x-1 overflow-x-auto scrollbar-hide max-w-md">
             {files.map((file) => (
               <button
                 key={file.id}
                 onClick={() => setActiveFileId(file.id)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-t-md transition-all duration-normal ${
+                className={`px-3 py-1.5 text-sm font-medium rounded-t-md transition-all duration-normal whitespace-nowrap flex-shrink-0 ${
                   file.id === activeFileId
                     ? 'bg-surface-tertiary text-foreground border-b-2 border-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-surface-tertiary/50'
@@ -344,7 +364,7 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
             ))}
             <button
               onClick={() => setShowNewFile(true)}
-              className="px-2 py-1.5 text-sm font-medium rounded-t-md text-muted-foreground hover:text-foreground hover:bg-surface-tertiary/50 transition-all duration-normal"
+              className="px-2 py-1.5 text-sm font-medium rounded-t-md text-muted-foreground hover:text-foreground hover:bg-surface-tertiary/50 transition-all duration-normal flex-shrink-0"
             >
               +
             </button>
@@ -454,10 +474,17 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
               const manager = new CursorDecorationManager(editor);
               setCursorManager(manager);
 
-              // Track cursor position changes
+              // Track cursor position changes with throttling
+              let cursorUpdateTimeout: NodeJS.Timeout;
               editor.onDidChangeCursorPosition((e) => {
                 if (collaboration.updateCursor && user) {
-                  collaboration.updateCursor(e.position.lineNumber, e.position.column);
+                  console.log('[CURSOR EMIT] Cursor moved to:', e.position.lineNumber, e.position.column);
+                  
+                  // Throttle cursor updates to avoid spam
+                  clearTimeout(cursorUpdateTimeout);
+                  cursorUpdateTimeout = setTimeout(() => {
+                    collaboration.updateCursor(e.position.lineNumber, e.position.column);
+                  }, 100); // Throttle to 100ms
                 }
               });
             }}

@@ -36,6 +36,26 @@ export const CodeTerminal: React.FC<CodeTerminalProps> = ({
   };
 
   useEffect(scrollToBottom, [outputs]);
+  
+  // Listen for code execution results from editor
+  useEffect(() => {
+    const handleExecutionResult = (event: CustomEvent) => {
+      const { output, isError } = event.detail;
+      const newOutput: TerminalOutput = {
+        id: Date.now().toString(),
+        command: 'run',
+        output,
+        error: isError ? 'true' : undefined,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+      setOutputs(prev => [...prev, newOutput]);
+    };
+
+    window.addEventListener('code-execution-result', handleExecutionResult as EventListener);
+    return () => {
+      window.removeEventListener('code-execution-result', handleExecutionResult as EventListener);
+    };
+  }, []);
 
   const executeCommand = async (command: string) => {
     if (!command.trim()) return;
