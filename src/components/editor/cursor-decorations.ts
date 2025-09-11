@@ -16,11 +16,14 @@ export class CursorDecorationManager {
   }
 
   updateCursors(cursors: RemoteCursor[]) {
+    console.log('[DECORATION CREATED] Updating cursors for', cursors.length, 'users');
+    
     // Clear existing decorations
     this.clearAllDecorations();
 
     // Add new decorations for each cursor
     cursors.forEach(cursor => {
+      console.log('[DECORATION CREATED] Adding decoration for user:', cursor.userName, 'at:', cursor.position);
       this.addCursorDecoration(cursor);
     });
   }

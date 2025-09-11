@@ -93,7 +93,10 @@ export const useRealtimeCollaboration = ({
             color: presenceData?.color || '#2CA6A4'
           };
           
-          console.log('Processing participant:', participant);
+          console.log('[CURSOR RECV] Processing participant:', participant);
+          if (participant.cursor) {
+            console.log('[CURSOR RECV] Participant has cursor at:', participant.cursor);
+          }
           return participant;
         });
         
@@ -155,13 +158,17 @@ export const useRealtimeCollaboration = ({
 
   // Update cursor position
   const updateCursor = useCallback(async (line: number, column: number) => {
-    if (channel) {
-      await channel.track({
+    if (channel && userId && userName) {
+      console.log('[CURSOR EMIT] Updating cursor position:', { line, column, userId, userName });
+      
+      const result = await channel.track({
         name: userName,
         online_at: new Date().toISOString(),
         cursor: { line, column },
         color: generateUserColor(userId)
       });
+      
+      console.log('[CURSOR EMIT] Track result:', result);
     }
   }, [channel, userName, userId]);
 
