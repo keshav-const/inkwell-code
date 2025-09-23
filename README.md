@@ -1,4 +1,4 @@
-# Inkwell Code - Real-time Collaborative Code Editor
+# Code Collab - Real-time Collaborative Code Editor
 
 A production-grade, real-time collaborative code editor built with React, TypeScript, Monaco Editor, and Supabase. Features beautiful handcrafted UI with organic animations and seamless real-time collaboration.
 
