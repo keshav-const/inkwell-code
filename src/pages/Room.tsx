@@ -209,6 +209,46 @@ export const Room = () => {
     loadRoomData();
   }, [roomId, user]);
 
+  // Track room visit in history
+  useEffect(() => {
+    if (!roomId || !user || !room) return;
+
+    const trackRoomVisit = async () => {
+      try {
+        // Check if entry exists
+        const { data: existing } = await supabase
+          .from('room_history')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('room_id', roomId)
+          .single();
+
+        if (existing) {
+          // Update last_visited
+          await supabase
+            .from('room_history')
+            .update({ last_visited: new Date().toISOString() })
+            .eq('id', existing.id);
+        } else {
+          // Insert new entry
+          await supabase
+            .from('room_history')
+            .insert({
+              user_id: user.id,
+              room_id: roomId,
+              room_code: room.code,
+              joined_at: new Date().toISOString(),
+              last_visited: new Date().toISOString()
+            });
+        }
+      } catch (error) {
+        console.error('Failed to track room visit:', error);
+      }
+    };
+
+    trackRoomVisit();
+  }, [roomId, user, room]);
+
   // Set up real-time subscriptions for file changes
   useEffect(() => {
     if (!roomId) return;

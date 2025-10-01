@@ -104,6 +104,7 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          provider: string | null
           updated_at: string
         }
         Insert: {
@@ -112,6 +113,7 @@ export type Database = {
           display_name?: string | null
           email: string
           id: string
+          provider?: string | null
           updated_at?: string
         }
         Update: {
@@ -120,6 +122,7 @@ export type Database = {
           display_name?: string | null
           email?: string
           id?: string
+          provider?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -159,6 +162,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      room_history: {
+        Row: {
+          id: string
+          joined_at: string
+          last_visited: string
+          room_code: string
+          room_id: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          last_visited?: string
+          room_code: string
+          room_id?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          last_visited?: string
+          room_code?: string
+          room_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_history_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_members: {
         Row: {

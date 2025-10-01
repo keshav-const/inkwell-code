@@ -287,78 +287,54 @@ Troubleshooting:
       </div>
 
       {/* Terminal Content */}
-      <div className="flex-1 overflow-y-auto space-y-2">
-        {/* Welcome message */}
-        {outputs.length === 0 && (
-          <div className="space-y-1">
-            <div className="text-green-500">🚀 Welcome to Inkwell Code Terminal</div>
-            <div className="text-gray-400">Type 'help' for available commands or 'run' to execute your code.</div>
-            <div className="text-gray-500 text-xs">
-              {activeFile ? `Active file: ${activeFile.name} (${activeFile.language})` : 'No active file selected'}
-            </div>
+      <div className="flex-1 overflow-auto p-4 font-mono text-sm whitespace-pre-wrap">
+        {outputs.length === 0 ? (
+          <div className="text-muted-foreground">
+            Press Run to execute your code. Output will appear here.
           </div>
-        )}
-
-        {/* Command outputs */}
-        {outputs.map((output) => (
-          <motion.div
-            key={output.id}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-1"
-          >
-            <div className="flex items-center space-x-2">
-              <span className="text-green-500">$</span>
-              <span className="text-white">{output.command}</span>
-            </div>
-            {output.output && (
-              <div className="ml-4 whitespace-pre-wrap">
-                {output.output.split('\n').map((line, index) => {
-                  const isStderr = line.includes('❌ Errors:') || 
-                                   (output.output.includes('❌ Errors:') && 
-                                    output.output.indexOf(line) > output.output.indexOf('❌ Errors:') &&
-                                    (output.output.indexOf('📊 Status:') === -1 || 
-                                     output.output.indexOf(line) < output.output.indexOf('📊 Status:')));
-                  const isError = output.error === 'true' || line.includes('❌') || line.includes('Error:');
-                  const isSuccess = line.includes('✅') || line.includes('Output:');
-                  const isInfo = line.includes('📊') || line.includes('⏱️') || line.includes('🧠');
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`${
-                        isStderr || isError ? 'text-red-400' :
-                        isSuccess ? 'text-green-400' :
-                        isInfo ? 'text-blue-400' :
-                        'text-gray-300'
-                      }`}
-                    >
-                      {line}
-                    </div>
-                  );
-                })}
+        ) : (
+          outputs.map((output) => (
+            <motion.div
+              key={output.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-1"
+            >
+              <div className="flex items-center space-x-2">
+                <span className="text-green-500">$</span>
+                <span className="text-white">{output.command}</span>
               </div>
-            )}
-          </motion.div>
-        ))}
-
-        {/* Current command input */}
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-          <span className="text-green-500">$</span>
-          <input
-            type="text"
-            value={currentCommand}
-            onChange={(e) => setCurrentCommand(e.target.value)}
-            disabled={isExecuting}
-            className="flex-1 bg-transparent text-white outline-none disabled:opacity-50"
-            placeholder={isExecuting ? "Executing..." : "Type a command..."}
-            autoFocus
-          />
-          {isExecuting && (
-            <span className="text-yellow-400 animate-pulse">⚡ Running...</span>
-          )}
-        </form>
-
+              {output.output && (
+                <div className="ml-4 whitespace-pre-wrap">
+                  {output.output.split('\n').map((line, index) => {
+                    const isStderr = line.includes('❌ Errors:') || 
+                                     (output.output.includes('❌ Errors:') && 
+                                      output.output.indexOf(line) > output.output.indexOf('❌ Errors:') &&
+                                      (output.output.indexOf('📊 Status:') === -1 || 
+                                       output.output.indexOf(line) < output.output.indexOf('📊 Status:')));
+                    const isError = output.error === 'true' || line.includes('❌') || line.includes('Error:');
+                    const isSuccess = line.includes('✅') || line.includes('Output:');
+                    const isInfo = line.includes('📊') || line.includes('⏱️') || line.includes('🧠');
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`${
+                          isStderr || isError ? 'text-red-400' :
+                          isSuccess ? 'text-green-400' :
+                          isInfo ? 'text-blue-400' :
+                          'text-gray-300'
+                        }`}
+                      >
+                        {line}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          ))
+        )}
         <div ref={terminalEndRef} />
       </div>
     </div>

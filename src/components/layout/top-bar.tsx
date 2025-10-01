@@ -40,6 +40,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   const getUserDisplayName = () => {
     if (!user) return '';
+    // Try to get from user_metadata first, fallback to profile
     return user.user_metadata?.full_name || 
            user.user_metadata?.name || 
            user.email?.split('@')[0] || 
@@ -49,6 +50,11 @@ export const TopBar: React.FC<TopBarProps> = ({
   const getUserInitials = () => {
     const name = getUserDisplayName();
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getUserAvatar = () => {
+    // Try to get from user_metadata first (GitHub/Google OAuth)
+    return user?.user_metadata?.avatar_url || '';
   };
   return (
     <motion.header 
@@ -115,7 +121,7 @@ export const TopBar: React.FC<TopBarProps> = ({
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center space-x-2 px-2 py-1 rounded-lg hover:bg-surface-secondary transition-colors">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.user_metadata?.avatar_url} />
+                    <AvatarImage src={getUserAvatar()} />
                     <AvatarFallback className="text-xs">
                       {getUserInitials()}
                     </AvatarFallback>

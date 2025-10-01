@@ -22,6 +22,7 @@ interface CollaborativeEditorProps {
   files: FileModel[];
   collaboration: any;
   onFilesChange?: (files: FileModel[]) => void;
+  onOpenTerminal?: () => void;
 }
 
 const languageOptions = [
@@ -48,7 +49,8 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
   roomId,
   files,
   collaboration,
-  onFilesChange
+  onFilesChange,
+  onOpenTerminal
 }) => {
   const { user } = useAuth();
   const [activeFileId, setActiveFileId] = useState<string>(files[0]?.id || '');
@@ -120,6 +122,11 @@ export const CollaborativeEditor: React.FC<CollaborativeEditorProps> = ({
     if (withStdin) {
       setShowStdinDialog(true);
       return;
+    }
+    
+    // Auto-open terminal panel
+    if (onOpenTerminal) {
+      onOpenTerminal();
     }
     
     setIsRunning(true);

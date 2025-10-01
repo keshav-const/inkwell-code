@@ -56,6 +56,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   const isAdmin = user?.id === room.admin_id;
 
+  // Function to open terminal panel
+  const openTerminal = () => {
+    setBottomDockCollapsed(false);
+  };
+
   const handleShare = () => {
     setShareModalOpen(true);
   };
@@ -128,6 +133,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
               roomId={room.id}
               files={files}
               collaboration={collaboration}
+              onOpenTerminal={openTerminal}
             />
           </div>
 

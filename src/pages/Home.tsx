@@ -5,9 +5,11 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { RoomCreationModal } from '@/components/room/room-creation-modal';
 import { RoomJoinModal } from '@/components/room/room-join-modal';
+import { RoomHistory } from '@/components/room/room-history';
 import { useAuth } from '@/hooks/use-auth';
 import { HandDrawnCodeIcon, HandDrawnUsersIcon } from '@/components/icons/hand-drawn-icons';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, User } from 'lucide-react';
+import { LogOut, Settings, User, History } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const Home = () => {
@@ -119,11 +121,122 @@ export const Home = () => {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-6 py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center space-y-8"
-        >
+        {isAuthenticated ? (
+          <Tabs defaultValue="actions" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="actions">Create or Join</TabsTrigger>
+              <TabsTrigger value="history">
+                <History className="w-4 h-4 mr-2" />
+                Room History
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="actions">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center space-y-8"
+              >
+                {/* Hero Section */}
+                <div className="space-y-4">
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    className="inline-block p-4 bg-primary/10 rounded-full mb-6"
+                  >
+                    <HandDrawnCodeIcon className="w-16 h-16 text-primary" />
+                  </motion.div>
+
+                  <h1 className="text-5xl font-bold text-foreground leading-tight">
+                    Code Together,
+                    <br />
+                    <span className="text-primary">Create Together</span>
+                  </h1>
+
+                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    A real-time collaborative code editor where teams can write, edit, 
+                    and debug code together. Perfect for pair programming, code reviews, 
+                    and remote collaboration.
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto"
+                >
+                  <PrimaryButton
+                    size="lg"
+                    onClick={() => setShowCreateRoom(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <HandDrawnCodeIcon className="w-5 h-5 mr-2" />
+                    Create Room
+                  </PrimaryButton>
+
+                  <PrimaryButton
+                    variant="outline"
+                    size="lg"
+                    onClick={() => setShowJoinRoom(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <HandDrawnUsersIcon className="w-5 h-5 mr-2" />
+                    Join Room
+                  </PrimaryButton>
+                </motion.div>
+
+                {/* Features */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border"
+                >
+                  <div className="space-y-3 text-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
+                      <HandDrawnCodeIcon className="w-6 h-6 text-primary" />
+                    </div>
+                    <h3 className="text-lg font-semibold">Real-time Editing</h3>
+                    <p className="text-sm text-muted-foreground">
+                      See changes instantly as your team codes together with live cursors and updates.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 text-center">
+                    <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mx-auto">
+                      <HandDrawnUsersIcon className="w-6 h-6 text-accent" />
+                    </div>
+                    <h3 className="text-lg font-semibold">Team Collaboration</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Invite unlimited team members with secure room codes and permissions.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3 text-center">
+                    <div className="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mx-auto">
+                      <div className="w-6 h-6 bg-secondary rounded-sm"></div>
+                    </div>
+                    <h3 className="text-lg font-semibold">Live Preview</h3>
+                    <p className="text-sm text-muted-foreground">
+                      See your code come to life with instant preview and built-in compiler support.
+                    </p>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </TabsContent>
+            
+            <TabsContent value="history">
+              <RoomHistory />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-8"
+          >
           {/* Hero Section */}
           <div className="space-y-4">
             <motion.div
@@ -148,51 +261,23 @@ export const Home = () => {
           </div>
 
           {/* Actions */}
-          {isAuthenticated ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto"
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-4"
+          >
+            <PrimaryButton
+              size="lg"
+              onClick={() => setShowAuthModal(true)}
+              className="px-8"
             >
-              <PrimaryButton
-                size="lg"
-                onClick={() => setShowCreateRoom(true)}
-                className="w-full sm:w-auto"
-              >
-                <HandDrawnCodeIcon className="w-5 h-5 mr-2" />
-                Create Room
-              </PrimaryButton>
-
-              <PrimaryButton
-                variant="outline"
-                size="lg"
-                onClick={() => setShowJoinRoom(true)}
-                className="w-full sm:w-auto"
-              >
-                <HandDrawnUsersIcon className="w-5 h-5 mr-2" />
-                Join Room
-              </PrimaryButton>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-4"
-            >
-              <PrimaryButton
-                size="lg"
-                onClick={() => setShowAuthModal(true)}
-                className="px-8"
-              >
-                Get Started
-              </PrimaryButton>
-              <p className="text-sm text-muted-foreground">
-                Sign in to create or join collaborative coding rooms
-              </p>
-            </motion.div>
-          )}
+              Get Started
+            </PrimaryButton>
+            <p className="text-sm text-muted-foreground">
+              Sign in to create or join collaborative coding rooms
+            </p>
+          </motion.div>
 
           {/* Features */}
           <motion.div
@@ -232,6 +317,7 @@ export const Home = () => {
             </div>
           </motion.div>
         </motion.div>
+        )}
       </main>
 
       {/* Modals */}
