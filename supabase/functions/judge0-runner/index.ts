@@ -202,7 +202,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: 'Judge0 API network error',
-          message: error.message,
+          message: error instanceof Error ? error.message : 'Unknown error',
           details: 'Failed to connect to Judge0 API'
         }),
         { 
@@ -307,7 +307,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         details: 'Check the function logs for more information'
       }),
       { 
