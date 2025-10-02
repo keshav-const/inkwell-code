@@ -117,14 +117,6 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
             handleUpdateFile(activeFile.id, code, language);
           }
         }}
-        showBackButton={true}
-        onBackClick={() => {
-          // Clean disconnect and navigate home
-          if (collaboration?.channel) {
-            collaboration.channel.unsubscribe();
-          }
-          window.location.href = '/';
-        }}
       />
 
       {/* Main Content Area */}

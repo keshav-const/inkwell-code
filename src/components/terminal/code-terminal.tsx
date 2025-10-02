@@ -137,96 +137,78 @@ Troubleshooting:
 
           if (error) {
             console.error('❌ Function invocation failed:', error);
+            let errorMessage = `Failed to execute code: ${error.message}`;
+            
+            if (error.message?.includes('non-2xx status code')) {
+              errorMessage += '\n\n🔧 Troubleshooting:\n• Check if RapidAPI key is configured\n• Verify Judge0 service is available\n• Check Edge Function logs for details';
+            }
             
             setOutputs(prev => prev.map(output => 
               output.id === newOutput.id 
-                ? { 
-                    ...output, 
-                    output: '❌ Code execution service temporarily unavailable. Please retry.', 
-                    error: 'true' 
-                  }
+                ? { ...output, output: errorMessage, error: 'true' }
                 : output
             ));
-            
-            toast({
-              title: "Error",
-              description: "Code execution failed",
-              variant: "destructive"
-            });
-            
             setIsExecuting(false);
             return;
           }
 
-          // Handle standardized response format with status field
-          if (data?.status === 'error') {
-            console.error('❌ Judge0 execution error:', data);
+          // Handle response data
+          if (data?.error) {
+            console.error('❌ Judge0 API error:', data);
+            let errorMessage = `Judge0 Error: ${data.error}`;
+            
+            if (data.message?.includes('authentication') || data.message?.includes('401')) {
+              errorMessage += '\n\n💡 This appears to be an API authentication issue.\nPlease check that the RapidAPI key is properly configured.';
+            } else if (data.message?.includes('subscription')) {
+              errorMessage += '\n\n💡 Your RapidAPI subscription may need to be activated.';
+            } else if (data.help) {
+              errorMessage += `\n\n${data.help}`;
+            }
             
             setOutputs(prev => prev.map(output => 
               output.id === newOutput.id 
-                ? { 
-                    ...output, 
-                    output: `❌ ${data.message || 'Code execution service temporarily unavailable. Please retry.'}`, 
-                    error: 'true' 
-                  }
+                ? { ...output, output: errorMessage, error: 'true' }
                 : output
             ));
-            
-            toast({
-              title: "Error",
-              description: "Code execution failed",
-              variant: "destructive"
-            });
-            
             setIsExecuting(false);
             return;
           }
 
-          // Success case - extract all output fields
-          const stdout = data?.stdout?.trim() || '';
-          const stderr = data?.stderr?.trim() || '';
-          const compile_output = data?.compile_output?.trim() || '';
-          const status = data?.execution_status || 'Completed';
-          
-          console.log('📊 Judge0 Response:', { 
-            stdout: stdout ? `${stdout.substring(0, 100)}...` : '(empty)',
-            stderr: stderr ? `${stderr.substring(0, 100)}...` : '(empty)',
-            compile_output: compile_output ? `${compile_output.substring(0, 100)}...` : '(empty)',
-            status,
-            time: data.time,
-            memory: data.memory
-          });
+          // Success case
+          const stdout = data?.stdout || '';
+          const stderr = data?.stderr || '';
+          const compile_output = data?.compile_output || '';
+          const status = data?.status || 'Unknown';
           
           let output = `Running ${activeFile.name}...\n`;
           
-          // Show stdout first (program output)
           if (stdout) {
-            output += `\n📤 Output:\n${stdout}\n`;
+            output += `✅ Output:\n${stdout}\n`;
           }
           
-          // Show compilation errors
           if (compile_output) {
-            output += `\n❌ Compilation Error:\n${compile_output}\n`;
+            output += `🔧 Compile Output:\n${compile_output}\n`;
           }
           
-          // Show runtime errors (stderr)
           if (stderr) {
-            output += `\n❌ Runtime Error:\n${stderr}\n`;
+            output += `❌ Errors:\n${stderr}\n`;
           }
           
-          // If no output at all
           if (!stdout && !stderr && !compile_output) {
-            output += '\n✅ Code executed successfully (no output generated)\n';
+            output += '✅ Code executed successfully (no output generated)';
           }
           
-          // Always show execution stats
-          output += `\n⏱️ Execution time: ${data.time || '0'}s`;
+          output += `\n📊 Status: ${status}`;
+          
+          if (data.time) {
+            output += ` | ⏱️ Time: ${data.time}s`;
+          }
           
           if (data.memory) {
-            output += ` | Memory: ${data.memory} KB`;
+            output += ` | 🧠 Memory: ${data.memory} KB`;
           }
           
-          const hasError = data?.status === 'error' || !!stderr || !!compile_output;
+          const hasError = data?.success === false || !!stderr;
 
           setOutputs(prev => prev.map(outputItem => 
             outputItem.id === newOutput.id 
@@ -234,16 +216,10 @@ Troubleshooting:
                   ...outputItem,
                   output,
                   error: hasError ? 'true' : undefined,
-                  exitCode: hasError ? 1 : 0
+                  exitCode: data?.exitCode || (hasError ? 1 : 0)
                 }
               : outputItem
           ));
-          
-          // Show simple notification
-          toast({
-            title: hasError ? "Error" : "Run complete",
-            description: hasError ? "Check terminal for details" : "Code executed successfully"
-          });
         } catch (runError: any) {
           console.error('❌ Run command failed:', runError);
           setOutputs(prev => prev.map(output => 
@@ -330,44 +306,30 @@ Troubleshooting:
               </div>
               {output.output && (
                 <div className="ml-4 whitespace-pre-wrap">
-                  {(() => {
-                    const lines = output.output.split('\n');
-                    let currentSection = 'normal'; // 'normal', 'stdout', 'compilation-error', 'runtime-error'
+                  {output.output.split('\n').map((line, index) => {
+                    const isStderr = line.includes('❌ Errors:') || 
+                                     (output.output.includes('❌ Errors:') && 
+                                      output.output.indexOf(line) > output.output.indexOf('❌ Errors:') &&
+                                      (output.output.indexOf('📊 Status:') === -1 || 
+                                       output.output.indexOf(line) < output.output.indexOf('📊 Status:')));
+                    const isError = output.error === 'true' || line.includes('❌') || line.includes('Error:');
+                    const isSuccess = line.includes('✅') || line.includes('Output:');
+                    const isInfo = line.includes('📊') || line.includes('⏱️') || line.includes('🧠');
                     
-                    return lines.map((line, index) => {
-                      // Detect section markers
-                      if (line.includes('📤 Output:')) {
-                        currentSection = 'stdout';
-                      } else if (line.includes('❌ Compilation Error:')) {
-                        currentSection = 'compilation-error';
-                      } else if (line.includes('❌ Runtime Error:')) {
-                        currentSection = 'runtime-error';
-                      } else if (line.includes('⏱️') || line.includes('✅')) {
-                        currentSection = 'normal';
-                      }
-                      
-                      // Determine color based on current section and line content
-                      let colorClass = 'text-gray-300'; // default
-                      
-                      if (line.includes('❌') || currentSection === 'compilation-error' || currentSection === 'runtime-error') {
-                        colorClass = 'text-red-400';
-                      } else if (line.includes('✅')) {
-                        colorClass = 'text-green-400';
-                      } else if (line.includes('⏱️') || line.includes('📊')) {
-                        colorClass = 'text-blue-400';
-                      } else if (line.includes('📤 Output:')) {
-                        colorClass = 'text-cyan-400';
-                      } else if (currentSection === 'stdout') {
-                        colorClass = 'text-gray-100'; // stdout in white/light gray
-                      }
-                      
-                      return (
-                        <div key={index} className={colorClass}>
-                          {line}
-                        </div>
-                      );
-                    });
-                  })()}
+                    return (
+                      <div 
+                        key={index} 
+                        className={`${
+                          isStderr || isError ? 'text-red-400' :
+                          isSuccess ? 'text-green-400' :
+                          isInfo ? 'text-blue-400' :
+                          'text-gray-300'
+                        }`}
+                      >
+                        {line}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </motion.div>

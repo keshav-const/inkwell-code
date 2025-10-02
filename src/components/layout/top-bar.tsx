@@ -17,8 +17,6 @@ interface TopBarProps {
   onShareClick?: () => void;
   onSettingsClick?: () => void;
   onLoadProject?: (code: string, language: string) => void;
-  onBackClick?: () => void;
-  showBackButton?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -27,9 +25,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   currentFile,
   onShareClick,
   onSettingsClick,
-  onLoadProject,
-  onBackClick,
-  showBackButton = false
+  onLoadProject
 }) => {
   const { user, isAuthenticated, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -67,19 +63,8 @@ export const TopBar: React.FC<TopBarProps> = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Left: App Name + Back Button */}
+      {/* Left: App Name */}
       <div className="flex items-center space-x-3">
-        {showBackButton && (
-          <PrimaryButton
-            variant="ghost"
-            size="sm"
-            onClick={onBackClick}
-            className="flex items-center space-x-2"
-          >
-            <span>←</span>
-            <span>Exit Room</span>
-          </PrimaryButton>
-        )}
         <div className="flex items-center space-x-2">
           <CodeIcon size={24} className="text-primary" />
           <h1 className="text-lg font-semibold text-foreground">
