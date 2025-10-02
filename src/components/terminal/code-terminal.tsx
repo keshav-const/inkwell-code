@@ -199,19 +199,19 @@ Troubleshooting:
           
           let output = `Running ${activeFile.name}...\n`;
           
-          // Show compile output first (if any)
+          // Show stdout first (program output)
+          if (stdout) {
+            output += `\n📤 Output:\n${stdout}\n`;
+          }
+          
+          // Show compilation errors
           if (compile_output) {
             output += `\n❌ Compilation Error:\n${compile_output}\n`;
           }
           
-          // Show stderr (runtime errors)
+          // Show runtime errors (stderr)
           if (stderr) {
             output += `\n❌ Runtime Error:\n${stderr}\n`;
-          }
-          
-          // Show stdout (program output)
-          if (stdout) {
-            output += `\n${stdout}\n`;
           }
           
           // If no output at all
@@ -330,30 +330,44 @@ Troubleshooting:
               </div>
               {output.output && (
                 <div className="ml-4 whitespace-pre-wrap">
-                  {output.output.split('\n').map((line, index) => {
-                    const isStderr = line.includes('❌ Errors:') || 
-                                     (output.output.includes('❌ Errors:') && 
-                                      output.output.indexOf(line) > output.output.indexOf('❌ Errors:') &&
-                                      (output.output.indexOf('📊 Status:') === -1 || 
-                                       output.output.indexOf(line) < output.output.indexOf('📊 Status:')));
-                    const isError = output.error === 'true' || line.includes('❌') || line.includes('Error:');
-                    const isSuccess = line.includes('✅') || line.includes('Output:');
-                    const isInfo = line.includes('📊') || line.includes('⏱️') || line.includes('🧠');
+                  {(() => {
+                    const lines = output.output.split('\n');
+                    let currentSection = 'normal'; // 'normal', 'stdout', 'compilation-error', 'runtime-error'
                     
-                    return (
-                      <div 
-                        key={index} 
-                        className={`${
-                          isStderr || isError ? 'text-red-400' :
-                          isSuccess ? 'text-green-400' :
-                          isInfo ? 'text-blue-400' :
-                          'text-gray-300'
-                        }`}
-                      >
-                        {line}
-                      </div>
-                    );
-                  })}
+                    return lines.map((line, index) => {
+                      // Detect section markers
+                      if (line.includes('📤 Output:')) {
+                        currentSection = 'stdout';
+                      } else if (line.includes('❌ Compilation Error:')) {
+                        currentSection = 'compilation-error';
+                      } else if (line.includes('❌ Runtime Error:')) {
+                        currentSection = 'runtime-error';
+                      } else if (line.includes('⏱️') || line.includes('✅')) {
+                        currentSection = 'normal';
+                      }
+                      
+                      // Determine color based on current section and line content
+                      let colorClass = 'text-gray-300'; // default
+                      
+                      if (line.includes('❌') || currentSection === 'compilation-error' || currentSection === 'runtime-error') {
+                        colorClass = 'text-red-400';
+                      } else if (line.includes('✅')) {
+                        colorClass = 'text-green-400';
+                      } else if (line.includes('⏱️') || line.includes('📊')) {
+                        colorClass = 'text-blue-400';
+                      } else if (line.includes('📤 Output:')) {
+                        colorClass = 'text-cyan-400';
+                      } else if (currentSection === 'stdout') {
+                        colorClass = 'text-gray-100'; // stdout in white/light gray
+                      }
+                      
+                      return (
+                        <div key={index} className={colorClass}>
+                          {line}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </motion.div>
