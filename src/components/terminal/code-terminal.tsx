@@ -137,39 +137,47 @@ Troubleshooting:
 
           if (error) {
             console.error('❌ Function invocation failed:', error);
-            let errorMessage = `Failed to execute code: ${error.message}`;
-            
-            if (error.message?.includes('non-2xx status code')) {
-              errorMessage += '\n\n🔧 Troubleshooting:\n• Check if RapidAPI key is configured\n• Verify Judge0 service is available\n• Check Edge Function logs for details';
-            }
             
             setOutputs(prev => prev.map(output => 
               output.id === newOutput.id 
-                ? { ...output, output: errorMessage, error: 'true' }
+                ? { 
+                    ...output, 
+                    output: '❌ Code execution service temporarily unavailable. Please retry.', 
+                    error: 'true' 
+                  }
                 : output
             ));
+            
+            toast({
+              title: "Error",
+              description: "Code execution failed",
+              variant: "destructive"
+            });
+            
             setIsExecuting(false);
             return;
           }
 
-          // Handle response data
-          if (data?.error) {
-            console.error('❌ Judge0 API error:', data);
-            let errorMessage = `Judge0 Error: ${data.error}`;
-            
-            if (data.message?.includes('authentication') || data.message?.includes('401')) {
-              errorMessage += '\n\n💡 This appears to be an API authentication issue.\nPlease check that the RapidAPI key is properly configured.';
-            } else if (data.message?.includes('subscription')) {
-              errorMessage += '\n\n💡 Your RapidAPI subscription may need to be activated.';
-            } else if (data.help) {
-              errorMessage += `\n\n${data.help}`;
-            }
+          // Handle standardized response format with status field
+          if (data?.status === 'error') {
+            console.error('❌ Judge0 execution error:', data);
             
             setOutputs(prev => prev.map(output => 
               output.id === newOutput.id 
-                ? { ...output, output: errorMessage, error: 'true' }
+                ? { 
+                    ...output, 
+                    output: `❌ ${data.message || 'Code execution service temporarily unavailable. Please retry.'}`, 
+                    error: 'true' 
+                  }
                 : output
             ));
+            
+            toast({
+              title: "Error",
+              description: "Code execution failed",
+              variant: "destructive"
+            });
+            
             setIsExecuting(false);
             return;
           }
@@ -178,27 +186,27 @@ Troubleshooting:
           const stdout = data?.stdout || '';
           const stderr = data?.stderr || '';
           const compile_output = data?.compile_output || '';
-          const status = data?.status || 'Unknown';
+          const status = data?.execution_status || 'Completed';
           
-          let output = `Running ${activeFile.name}...\n`;
+          let output = `Running ${activeFile.name}...\n\n`;
           
           if (stdout) {
-            output += `✅ Output:\n${stdout}\n`;
+            output += `✅ Output:\n${stdout}\n\n`;
           }
           
           if (compile_output) {
-            output += `🔧 Compile Output:\n${compile_output}\n`;
+            output += `🔧 Compile Output:\n${compile_output}\n\n`;
           }
           
           if (stderr) {
-            output += `❌ Errors:\n${stderr}\n`;
+            output += `❌ Errors:\n${stderr}\n\n`;
           }
           
           if (!stdout && !stderr && !compile_output) {
-            output += '✅ Code executed successfully (no output generated)';
+            output += '✅ Code executed successfully (no output generated)\n\n';
           }
           
-          output += `\n📊 Status: ${status}`;
+          output += `📊 Status: ${status}`;
           
           if (data.time) {
             output += ` | ⏱️ Time: ${data.time}s`;
@@ -208,7 +216,7 @@ Troubleshooting:
             output += ` | 🧠 Memory: ${data.memory} KB`;
           }
           
-          const hasError = data?.success === false || !!stderr;
+          const hasError = data?.status === 'error' || !!stderr;
 
           setOutputs(prev => prev.map(outputItem => 
             outputItem.id === newOutput.id 
@@ -216,10 +224,16 @@ Troubleshooting:
                   ...outputItem,
                   output,
                   error: hasError ? 'true' : undefined,
-                  exitCode: data?.exitCode || (hasError ? 1 : 0)
+                  exitCode: hasError ? 1 : 0
                 }
               : outputItem
           ));
+          
+          // Show simple notification
+          toast({
+            title: hasError ? "Error" : "Run complete",
+            description: hasError ? "Check terminal for details" : "Code executed successfully"
+          });
         } catch (runError: any) {
           console.error('❌ Run command failed:', runError);
           setOutputs(prev => prev.map(output => 

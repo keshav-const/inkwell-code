@@ -165,30 +165,14 @@ serve(async (req) => {
           errorMessage = errorText;
         }
         
-        if (submissionResponse.status === 401 || submissionResponse.status === 403) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Judge0 API authentication failed',
-              message: 'Please check your RapidAPI key and subscription status',
-              details: errorMessage,
-              help: 'Visit https://rapidapi.com/judge0-official/api/judge0-ce to manage your subscription'
-            }),
-            { 
-              status: 403, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            }
-          );
-        }
-        
         return new Response(
           JSON.stringify({ 
-            error: 'Judge0 API submission error',
-            message: errorMessage,
-            status: submissionResponse.status,
-            judge0_response: errorText
+            status: 'error',
+            message: 'Code execution service temporarily unavailable. Please retry.',
+            details: errorMessage
           }),
           { 
-            status: 502, 
+            status: 200, // Return 200 so frontend handles it gracefully
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         );
@@ -201,12 +185,12 @@ serve(async (req) => {
       console.error('Judge0 submission fetch error:', error);
       return new Response(
         JSON.stringify({ 
-          error: 'Judge0 API network error',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          details: 'Failed to connect to Judge0 API'
+          status: 'error',
+          message: 'Code execution service temporarily unavailable. Please retry.',
+          details: error instanceof Error ? error.message : 'Unknown error'
         }),
         { 
-          status: 502, 
+          status: 200, // Return 200 so frontend handles it gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -215,11 +199,12 @@ serve(async (req) => {
     if (!submissionResult.token) {
       return new Response(
         JSON.stringify({ 
-          error: 'No submission token received from Judge0',
-          details: submissionResult
+          status: 'error',
+          message: 'Code execution service temporarily unavailable. Please retry.',
+          details: 'No submission token received'
         }),
         { 
-          status: 502, 
+          status: 200, // Return 200 so frontend handles it gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -265,11 +250,12 @@ serve(async (req) => {
     if (!result) {
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to retrieve execution result from Judge0',
-          message: 'Execution timed out or failed to complete'
+          status: 'error',
+          message: 'Code execution service temporarily unavailable. Please retry.',
+          details: 'Execution timed out or failed to complete'
         }),
         { 
-          status: 502, 
+          status: 200, // Return 200 so frontend handles it gracefully
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -280,18 +266,20 @@ serve(async (req) => {
     const decodedStderr = result.stderr ? atob(result.stderr) : '';
     const decodedCompileOutput = result.compile_output ? atob(result.compile_output) : '';
 
-    // Process and return results
+    // Process and return results with standardized format
+    const isSuccess = result.status?.id === 3; // Status ID 3 means "Accepted"
+    
     const response = {
+      status: isSuccess ? 'success' : 'error',
       stdout: decodedStdout,
       stderr: decodedStderr,
       compile_output: decodedCompileOutput,
-      status: result.status?.description || 'Unknown',
+      execution_status: result.status?.description || 'Unknown',
       time: result.time || '0',
       memory: result.memory || 0,
-      language: language,
-      success: result.status?.id === 3, // Status ID 3 means "Accepted"
-      output: decodedStdout || decodedStderr || decodedCompileOutput || 'No output',
-      error: decodedStderr || (result.status?.id !== 3 ? result.status?.description : null)
+      message: isSuccess 
+        ? 'Code executed successfully' 
+        : (decodedStderr || result.status?.description || 'Execution failed')
     };
 
     return new Response(
@@ -306,12 +294,12 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        details: 'Check the function logs for more information'
+        status: 'error',
+        message: 'Code execution service temporarily unavailable. Please retry.',
+        details: error instanceof Error ? error.message : 'Unknown error'
       }),
       { 
-        status: 500, 
+        status: 200, // Return 200 so frontend handles it gracefully
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
