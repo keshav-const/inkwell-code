@@ -182,41 +182,51 @@ Troubleshooting:
             return;
           }
 
-          // Success case
-          const stdout = data?.stdout || '';
-          const stderr = data?.stderr || '';
-          const compile_output = data?.compile_output || '';
+          // Success case - extract all output fields
+          const stdout = data?.stdout?.trim() || '';
+          const stderr = data?.stderr?.trim() || '';
+          const compile_output = data?.compile_output?.trim() || '';
           const status = data?.execution_status || 'Completed';
           
-          let output = `Running ${activeFile.name}...\n\n`;
+          console.log('📊 Judge0 Response:', { 
+            stdout: stdout ? `${stdout.substring(0, 100)}...` : '(empty)',
+            stderr: stderr ? `${stderr.substring(0, 100)}...` : '(empty)',
+            compile_output: compile_output ? `${compile_output.substring(0, 100)}...` : '(empty)',
+            status,
+            time: data.time,
+            memory: data.memory
+          });
           
-          if (stdout) {
-            output += `✅ Output:\n${stdout}\n\n`;
-          }
+          let output = `Running ${activeFile.name}...\n`;
           
+          // Show compile output first (if any)
           if (compile_output) {
-            output += `🔧 Compile Output:\n${compile_output}\n\n`;
+            output += `\n❌ Compilation Error:\n${compile_output}\n`;
           }
           
+          // Show stderr (runtime errors)
           if (stderr) {
-            output += `❌ Errors:\n${stderr}\n\n`;
+            output += `\n❌ Runtime Error:\n${stderr}\n`;
           }
           
+          // Show stdout (program output)
+          if (stdout) {
+            output += `\n${stdout}\n`;
+          }
+          
+          // If no output at all
           if (!stdout && !stderr && !compile_output) {
-            output += '✅ Code executed successfully (no output generated)\n\n';
+            output += '\n✅ Code executed successfully (no output generated)\n';
           }
           
-          output += `📊 Status: ${status}`;
-          
-          if (data.time) {
-            output += ` | ⏱️ Time: ${data.time}s`;
-          }
+          // Always show execution stats
+          output += `\n⏱️ Execution time: ${data.time || '0'}s`;
           
           if (data.memory) {
-            output += ` | 🧠 Memory: ${data.memory} KB`;
+            output += ` | Memory: ${data.memory} KB`;
           }
           
-          const hasError = data?.status === 'error' || !!stderr;
+          const hasError = data?.status === 'error' || !!stderr || !!compile_output;
 
           setOutputs(prev => prev.map(outputItem => 
             outputItem.id === newOutput.id 
