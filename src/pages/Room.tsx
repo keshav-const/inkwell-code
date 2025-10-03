@@ -106,7 +106,7 @@ export const Room = () => {
         if (roomError) {
           console.error('❌ Room fetch error:', roomError);
           if (roomError.code === 'PGRST116') {
-            setError('Room not found or you do not have access to this room.');
+            setError('Room not found. Please check the room link.');
           } else {
             throw roomError;
           }
@@ -115,6 +115,35 @@ export const Room = () => {
 
         console.log('✅ Room data fetched:', roomData);
         setRoom(roomData);
+
+        // Check if user is a member, if not, auto-join them
+        const { data: existingMember } = await supabase
+          .from('room_members')
+          .select('id')
+          .eq('room_id', roomId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!existingMember) {
+          console.log('👤 User not a member, auto-joining room...');
+          const { error: memberError } = await supabase
+            .from('room_members')
+            .insert({
+              room_id: roomId,
+              user_id: user.id,
+              role: 'member'
+            });
+
+          if (memberError) {
+            console.error('❌ Failed to join room:', memberError);
+            throw new Error('Failed to join room. Please try again.');
+          }
+          
+          toast({
+            title: 'Joined room!',
+            description: `Welcome to "${roomData.name}".`,
+          });
+        }
 
         // Fetch room members (simpler query without problematic join)
         const { data: membersData, error: membersError } = await supabase
@@ -314,6 +343,8 @@ export const Room = () => {
   }
 
   if (!user) {
+    // Store the room ID in session storage for redirect after login
+    sessionStorage.setItem('pendingRoomId', roomId || '');
     return <Navigate to="/" replace />;
   }
 

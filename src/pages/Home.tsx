@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PrimaryButton } from '@/components/ui/primary-button';
@@ -27,6 +27,17 @@ export const Home = () => {
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
   const [redirectToRoom, setRedirectToRoom] = useState<string | null>(null);
+
+  // Check for pending room redirect after login
+  useEffect(() => {
+    if (isAuthenticated && !loading) {
+      const pendingRoomId = sessionStorage.getItem('pendingRoomId');
+      if (pendingRoomId) {
+        sessionStorage.removeItem('pendingRoomId');
+        setRedirectToRoom(pendingRoomId);
+      }
+    }
+  }, [isAuthenticated, loading]);
 
   const handleSignOut = async () => {
     try {

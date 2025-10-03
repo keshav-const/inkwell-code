@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { PrimaryButton } from '../ui/primary-button';
 import { CodeIcon, SettingsIcon, ShareIcon, ChevronDownIcon, UsersIcon } from '../icons/hand-drawn-icons';
-import { LogOut } from 'lucide-react';
+import { LogOut, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AuthModal } from '@/components/auth/auth-modal';
@@ -29,6 +30,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const { user, isAuthenticated, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
@@ -63,8 +65,18 @@ export const TopBar: React.FC<TopBarProps> = ({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Left: App Name */}
+      {/* Left: Back Button + App Name */}
       <div className="flex items-center space-x-3">
+        <PrimaryButton
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/')}
+          className="flex items-center space-x-1"
+        >
+          <ArrowLeft size={16} />
+          <span>Back</span>
+        </PrimaryButton>
+        <div className="h-6 w-px bg-border" />
         <div className="flex items-center space-x-2">
           <CodeIcon size={24} className="text-primary" />
           <h1 className="text-lg font-semibold text-foreground">
