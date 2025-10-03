@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { PrimaryButton } from '../ui/primary-button';
 import { CodeIcon, SettingsIcon, ShareIcon, ChevronDownIcon, UsersIcon } from '../icons/hand-drawn-icons';
-import { LogOut, ArrowLeft } from 'lucide-react';
+import { LogOut, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AuthModal } from '@/components/auth/auth-modal';
@@ -31,6 +32,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const { user, isAuthenticated, signOut } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   const handleSignOut = async () => {
     try {
@@ -102,6 +104,20 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right: Actions */}
       <div className="flex items-center space-x-2">
+        {/* Theme Toggle */}
+        <PrimaryButton
+          variant="ghost"
+          size="sm"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="flex items-center"
+        >
+          {theme === 'dark' ? (
+            <Sun size={18} className="text-primary" />
+          ) : (
+            <Moon size={18} className="text-primary" />
+          )}
+        </PrimaryButton>
+
         {isAuthenticated ? (
           <>
             <ProjectManager 

@@ -109,8 +109,8 @@ export const RoomHistory = () => {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-foreground mb-6">Recent Rooms</h2>
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold text-foreground">Recent Rooms</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {history.map((item) => (
           <motion.div
@@ -121,27 +121,31 @@ export const RoomHistory = () => {
             transition={{ duration: 0.2 }}
           >
             <Card
-              className={`p-4 cursor-pointer transition-all hover:shadow-lg ${
-                item.room_id ? 'hover:border-primary' : 'opacity-60 cursor-not-allowed'
+              className={`glass-panel p-5 cursor-pointer transition-all hover:shadow-xl hover:ring-2 hover:ring-primary/30 ${
+                item.room_id ? '' : 'opacity-60 cursor-not-allowed'
               }`}
               onClick={() => handleRoomClick(item)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <HandDrawnCodeIcon className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold text-foreground">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center ring-2 ring-primary/20">
+                      <HandDrawnCodeIcon className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-bold text-lg text-foreground">
                       {item.rooms?.name || item.room_code}
                     </h3>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                     <Clock className="w-4 h-4" />
                     <span>
                       Last visited {formatDistanceToNow(new Date(item.last_visited), { addSuffix: true })}
                     </span>
                   </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Code: <span className="font-mono font-bold">{item.room_code}</span>
+                  <div className="mt-3 px-3 py-1.5 bg-muted/50 rounded-md inline-block">
+                    <span className="text-xs font-mono font-bold text-foreground">
+                      {item.room_code}
+                    </span>
                   </div>
                 </div>
                 {!item.room_id && (

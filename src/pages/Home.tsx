@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { AuthModal } from '@/components/auth/auth-modal';
 import { RoomCreationModal } from '@/components/room/room-creation-modal';
@@ -18,11 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, Settings, User, History } from 'lucide-react';
+import { LogOut, Settings, User, History, Sun, Moon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export const Home = () => {
   const { user, profile, loading, signOut, isAuthenticated } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showJoinRoom, setShowJoinRoom] = useState(false);
@@ -76,258 +78,281 @@ export const Home = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/80 to-accent/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       {/* Header */}
-      <header className="border-b border-border/50 backdrop-blur-sm bg-background/80">
+      <header className="glass-panel sticky top-0 z-50 backdrop-blur-xl bg-background/60 border-b border-border/50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <HandDrawnCodeIcon className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground">CodeCollabs</h1>
           </div>
 
-          {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-3 hover:bg-accent/50 rounded-lg px-3 py-2 transition-colors">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={profile?.avatar_url || ''} />
-                    <AvatarFallback>
-                      {profile?.display_name?.charAt(0) || profile?.email?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium">
-                    {profile?.display_name || profile?.email}
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="/profile" className="flex items-center w-full">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href="/settings" className="flex items-center w-full">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <PrimaryButton onClick={() => setShowAuthModal(true)}>
-              Sign In
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <PrimaryButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="flex items-center"
+            >
+              {theme === 'dark' ? (
+                <Sun size={18} className="text-primary" />
+              ) : (
+                <Moon size={18} className="text-primary" />
+              )}
             </PrimaryButton>
-          )}
+
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-3 hover:bg-accent/10 rounded-lg px-3 py-2 transition-colors">
+                    <Avatar className="w-8 h-8 ring-2 ring-primary/20">
+                      <AvatarImage src={profile?.avatar_url || ''} />
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {profile?.display_name?.charAt(0) || profile?.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium">
+                      {profile?.display_name || profile?.email}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 glass-panel">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <a href="/profile" className="flex items-center w-full">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href="/settings" className="flex items-center w-full">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <PrimaryButton onClick={() => setShowAuthModal(true)} glow>
+                Sign In
+              </PrimaryButton>
+            )}
+          </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-16">
+      <main className="max-w-5xl mx-auto px-6 py-20">
         {isAuthenticated ? (
-          <Tabs defaultValue="actions" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="actions">Create or Join</TabsTrigger>
-              <TabsTrigger value="history">
-                <History className="w-4 h-4 mr-2" />
-                Room History
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="actions">
+          <div className="space-y-12">
+            {/* Hero Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center space-y-8"
+            >
+              <div className="space-y-4">
+                <motion.div
+                  initial={{ scale: 0.9 }}
+                  animate={{ scale: 1 }}
+                  className="inline-block p-6 glass-card mb-6"
+                >
+                  <HandDrawnCodeIcon className="w-20 h-20 text-primary" />
+                </motion.div>
+
+                <h1 className="text-6xl font-bold text-foreground leading-tight">
+                  Collaborate & Code
+                  <br />
+                  <span className="text-primary">In Real-Time</span>
+                </h1>
+
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Create a room and start coding with your team instantly
+                </p>
+              </div>
+
+              {/* CTA Buttons */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-center space-y-8"
+                transition={{ delay: 0.2 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
               >
-                {/* Hero Section */}
-                <div className="space-y-4">
-                  <motion.div
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    className="inline-block p-4 bg-primary/10 rounded-full mb-6"
-                  >
-                    <HandDrawnCodeIcon className="w-16 h-16 text-primary" />
-                  </motion.div>
-
-                  <h1 className="text-5xl font-bold text-foreground leading-tight">
-                    Code Together,
-                    <br />
-                    <span className="text-primary">Create Together</span>
-                  </h1>
-
-                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    A real-time collaborative code editor where teams can write, edit, 
-                    and debug code together. Perfect for pair programming, code reviews, 
-                    and remote collaboration.
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto"
+                <PrimaryButton
+                  size="lg"
+                  onClick={() => setShowCreateRoom(true)}
+                  className="text-lg px-8 py-6 shadow-xl hover:shadow-2xl"
+                  glow
                 >
-                  <PrimaryButton
-                    size="lg"
-                    onClick={() => setShowCreateRoom(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    <HandDrawnCodeIcon className="w-5 h-5 mr-2" />
-                    Create Room
-                  </PrimaryButton>
+                  <HandDrawnCodeIcon className="w-6 h-6 mr-2" />
+                  Create New Room
+                </PrimaryButton>
 
-                  <PrimaryButton
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setShowJoinRoom(true)}
-                    className="w-full sm:w-auto"
-                  >
-                    <HandDrawnUsersIcon className="w-5 h-5 mr-2" />
-                    Join Room
-                  </PrimaryButton>
-                </motion.div>
-
-                {/* Features */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border"
+                <PrimaryButton
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowJoinRoom(true)}
+                  className="text-lg px-8 py-6"
                 >
-                  <div className="space-y-3 text-center">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                      <HandDrawnCodeIcon className="w-6 h-6 text-primary" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Real-time Editing</h3>
-                    <p className="text-sm text-muted-foreground">
-                      See changes instantly as your team codes together with live cursors and updates.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 text-center">
-                    <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mx-auto">
-                      <HandDrawnUsersIcon className="w-6 h-6 text-accent" />
-                    </div>
-                    <h3 className="text-lg font-semibold">Team Collaboration</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Invite unlimited team members with secure room codes and permissions.
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 text-center">
-                    <div className="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mx-auto">
-                      <div className="w-6 h-6 bg-secondary rounded-sm"></div>
-                    </div>
-                    <h3 className="text-lg font-semibold">Live Preview</h3>
-                    <p className="text-sm text-muted-foreground">
-                      See your code come to life with instant preview and built-in compiler support.
-                    </p>
-                  </div>
-                </motion.div>
+                  <HandDrawnUsersIcon className="w-6 h-6 mr-2" />
+                  Join Room
+                </PrimaryButton>
               </motion.div>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <RoomHistory />
-            </TabsContent>
-          </Tabs>
+            </motion.div>
+
+            {/* Room History */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="glass-card p-8"
+            >
+              <Tabs defaultValue="history" className="w-full">
+                <TabsList className="grid w-full grid-cols-1 mb-6">
+                  <TabsTrigger value="history" className="text-base">
+                    <History className="w-5 h-5 mr-2" />
+                    Recent Rooms
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="history">
+                  <RoomHistory />
+                </TabsContent>
+              </Tabs>
+            </motion.div>
+
+            {/* Features */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            >
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto ring-2 ring-primary/20">
+                  <HandDrawnCodeIcon className="w-7 h-7 text-primary" />
+                </div>
+                <h3 className="text-lg font-bold">Real-time Editing</h3>
+                <p className="text-sm text-muted-foreground">
+                  See changes instantly as your team codes together with live cursors and updates.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center mx-auto ring-2 ring-accent/20">
+                  <HandDrawnUsersIcon className="w-7 h-7 text-accent" />
+                </div>
+                <h3 className="text-lg font-bold">Team Collaboration</h3>
+                <p className="text-sm text-muted-foreground">
+                  Invite unlimited team members with secure room codes and permissions.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-secondary/30 rounded-xl flex items-center justify-center mx-auto ring-2 ring-border">
+                  <div className="w-7 h-7 bg-gradient-to-br from-primary to-accent rounded"></div>
+                </div>
+                <h3 className="text-lg font-bold">Live Preview</h3>
+                <p className="text-sm text-muted-foreground">
+                  See your code come to life with instant preview and built-in compiler support.
+                </p>
+              </div>
+            </motion.div>
+          </div>
         ) : (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-8"
+            className="text-center space-y-10"
           >
-          {/* Hero Section */}
-          <div className="space-y-4">
+            {/* Hero Section */}
+            <div className="space-y-6">
+              <motion.div
+                initial={{ scale: 0.9 }}
+                animate={{ scale: 1 }}
+                className="inline-block p-6 glass-card mb-8"
+              >
+                <HandDrawnCodeIcon className="w-24 h-24 text-primary" />
+              </motion.div>
+
+              <h1 className="text-6xl font-bold text-foreground leading-tight">
+                Code Together,
+                <br />
+                <span className="text-primary">Create Together</span>
+              </h1>
+
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+                A real-time collaborative code editor where teams can write, edit, 
+                and debug code together. Perfect for pair programming, code reviews, 
+                and remote collaboration.
+              </p>
+            </div>
+
+            {/* CTA */}
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              className="inline-block p-4 bg-primary/10 rounded-full mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="space-y-6"
             >
-              <HandDrawnCodeIcon className="w-16 h-16 text-primary" />
+              <PrimaryButton
+                size="lg"
+                onClick={() => setShowAuthModal(true)}
+                className="text-lg px-10 py-6 shadow-xl hover:shadow-2xl"
+                glow
+              >
+                Get Started Free
+              </PrimaryButton>
+              <p className="text-sm text-muted-foreground">
+                Sign in to create or join collaborative coding rooms
+              </p>
             </motion.div>
 
-            <h1 className="text-5xl font-bold text-foreground leading-tight">
-              Code Together,
-              <br />
-              <span className="text-primary">Create Together</span>
-            </h1>
-
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              A real-time collaborative code editor where teams can write, edit, 
-              and debug code together. Perfect for pair programming, code reviews, 
-              and remote collaboration.
-            </p>
-          </div>
-
-          {/* Actions */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-4"
-          >
-            <PrimaryButton
-              size="lg"
-              onClick={() => setShowAuthModal(true)}
-              className="px-8"
+            {/* Features */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20"
             >
-              Get Started
-            </PrimaryButton>
-            <p className="text-sm text-muted-foreground">
-              Sign in to create or join collaborative coding rooms
-            </p>
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto ring-2 ring-primary/20">
+                  <HandDrawnCodeIcon className="w-7 h-7 text-primary" />
+                </div>
+                <h3 className="text-lg font-bold">Real-time Editing</h3>
+                <p className="text-sm text-muted-foreground">
+                  See changes instantly as your team codes together with live cursors and updates.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center mx-auto ring-2 ring-accent/20">
+                  <HandDrawnUsersIcon className="w-7 h-7 text-accent" />
+                </div>
+                <h3 className="text-lg font-bold">Team Collaboration</h3>
+                <p className="text-sm text-muted-foreground">
+                  Invite unlimited team members with secure room codes and permissions.
+                </p>
+              </div>
+
+              <div className="glass-card p-6 space-y-3 text-center hover:scale-105 transition-transform">
+                <div className="w-14 h-14 bg-secondary/30 rounded-xl flex items-center justify-center mx-auto ring-2 ring-border">
+                  <div className="w-7 h-7 bg-gradient-to-br from-primary to-accent rounded"></div>
+                </div>
+                <h3 className="text-lg font-bold">Live Preview</h3>
+                <p className="text-sm text-muted-foreground">
+                  See your code come to life with instant preview and built-in compiler support.
+                </p>
+              </div>
+            </motion.div>
           </motion.div>
-
-          {/* Features */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16 pt-16 border-t border-border"
-          >
-            <div className="space-y-3 text-center">
-              <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto">
-                <HandDrawnCodeIcon className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold">Real-time Editing</h3>
-              <p className="text-sm text-muted-foreground">
-                See changes instantly as your team codes together with live cursors and updates.
-              </p>
-            </div>
-
-            <div className="space-y-3 text-center">
-              <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mx-auto">
-                <HandDrawnUsersIcon className="w-6 h-6 text-accent" />
-              </div>
-              <h3 className="text-lg font-semibold">Team Collaboration</h3>
-              <p className="text-sm text-muted-foreground">
-                Invite unlimited team members with secure room codes and permissions.
-              </p>
-            </div>
-
-            <div className="space-y-3 text-center">
-              <div className="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mx-auto">
-                <div className="w-6 h-6 bg-secondary rounded-sm"></div>
-              </div>
-              <h3 className="text-lg font-semibold">Live Preview</h3>
-              <p className="text-sm text-muted-foreground">
-                See your code come to life with instant preview and built-in compiler support.
-              </p>
-            </div>
-          </motion.div>
-        </motion.div>
         )}
       </main>
 
