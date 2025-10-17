@@ -1,0 +1,269 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Inkwell Code Editor Design System
+Deep dark slate grays with warm terracotta and desaturated teal accents
+*/
+
+@layer base {
+  :root {
+    /* Core Dark Theme - Deep Slate Grays */
+    --background: 215 25% 8%;          /* Very deep slate background */
+    --foreground: 215 15% 92%;         /* Light text */
+    
+    /* UI Surfaces */
+    --surface-primary: 215 20% 12%;    /* Primary panels */
+    --surface-secondary: 215 18% 16%;  /* Secondary panels */
+    --surface-tertiary: 215 16% 20%;   /* Elevated surfaces */
+    
+    /* Editor specific */
+    --editor-bg: 215 22% 10%;          /* Monaco editor background */
+    --editor-selection: 182 20% 25%;   /* Code selection */
+    --editor-line-highlight: 215 18% 14%; /* Current line */
+    
+    /* Accent Colors */
+    --terracotta: 15 55% 58%;          /* Warm terracotta #C86E5A */
+    --terracotta-light: 15 60% 68%;    /* Lighter terracotta */
+    --terracotta-dark: 15 50% 48%;     /* Darker terracotta */
+    
+    --teal: 179 58% 42%;               /* Desaturated teal #2CA6A4 */
+    --teal-light: 179 58% 52%;         /* Lighter teal */
+    --teal-dark: 179 58% 32%;          /* Darker teal */
+    
+    /* Semantic Colors */
+    --primary: 179 58% 42%;            /* Teal primary */
+    --primary-foreground: 215 15% 92%;
+    
+    --secondary: 215 18% 16%;          /* Secondary surface */
+    --secondary-foreground: 215 15% 92%;
+    
+    --accent: 15 55% 58%;              /* Terracotta accent */
+    --accent-foreground: 215 15% 92%;
+    
+    --muted: 215 16% 20%;              /* Muted surfaces */
+    --muted-foreground: 215 10% 65%;   /* Muted text */
+    
+    --border: 215 15% 25%;             /* Subtle borders */
+    --input: 215 18% 16%;              /* Input backgrounds */
+    --ring: 179 58% 42%;               /* Focus rings */
+    
+    /* Interactive States */
+    --hover-overlay: 179 58% 42% / 0.1; /* Subtle teal hover */
+    --active-overlay: 179 58% 42% / 0.2; /* Teal active state */
+    --glow-teal: 179 58% 42% / 0.4;      /* Soft teal glow */
+    
+    /* Status Colors */
+    --success: 142 52% 52%;            /* Success green */
+    --warning: 45 93% 58%;             /* Warning amber */
+    --error: 0 65% 58%;                /* Error red */
+    --destructive: 0 65% 58%;
+    --destructive-foreground: 215 15% 92%;
+    
+    /* Spacing Scale */
+    --space-xs: 0.25rem;   /* 4px */
+    --space-sm: 0.5rem;    /* 8px */
+    --space-md: 1rem;      /* 16px */
+    --space-lg: 1.5rem;    /* 24px */
+    --space-xl: 2rem;      /* 32px */
+    --space-2xl: 3rem;     /* 48px */
+    
+    /* Border Radius - Slightly angled corners */
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+    --radius: 6px;
+    
+    /* Typography */
+    --font-ui: 'Work Sans', sans-serif;
+    --font-mono: 'Fira Code', 'Consolas', monospace;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(215 25% 0% / 0.2);
+    --shadow-md: 0 4px 6px -1px hsl(215 25% 0% / 0.3);
+    --shadow-lg: 0 10px 15px -3px hsl(215 25% 0% / 0.4);
+    --shadow-inner: inset 0 2px 4px 0 hsl(215 25% 0% / 0.2);
+    --shadow-glow: 0 0 20px hsl(var(--glow-teal));
+    
+    /* Animation Durations */
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 350ms;
+    
+    /* Z-Index Scale */
+    --z-base: 0;
+    --z-elevated: 10;
+    --z-sticky: 20;
+    --z-fixed: 30;
+    --z-modal: 40;
+    --z-popover: 50;
+    --z-tooltip: 60;
+  }
+
+  .light {
+    /* Light Theme - Clean & Minimal */
+    --background: 0 0% 100%;           /* Pure white */
+    --foreground: 215 25% 12%;         /* Dark text */
+    
+    /* UI Surfaces */
+    --surface-primary: 215 20% 98%;    /* Very light gray */
+    --surface-secondary: 215 15% 96%;  /* Light gray */
+    --surface-tertiary: 215 12% 94%;   /* Slightly darker gray */
+    
+    /* Editor specific */
+    --editor-bg: 0 0% 100%;            /* White editor */
+    --editor-selection: 179 60% 85%;   /* Light teal selection */
+    --editor-line-highlight: 215 20% 97%; /* Very subtle highlight */
+    
+    /* Accent Colors remain vibrant */
+    --terracotta: 15 70% 50%;          /* More saturated terracotta */
+    --terracotta-light: 15 75% 60%;    
+    --terracotta-dark: 15 65% 40%;     
+    
+    --teal: 179 65% 40%;               /* Slightly darker teal for contrast */
+    --teal-light: 179 65% 50%;         
+    --teal-dark: 179 65% 30%;          
+    
+    /* Semantic Colors */
+    --primary: 179 65% 40%;            
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 215 15% 96%;          
+    --secondary-foreground: 215 25% 12%;
+    
+    --accent: 15 70% 50%;              
+    --accent-foreground: 0 0% 100%;
+    
+    --muted: 215 12% 94%;              
+    --muted-foreground: 215 15% 40%;   
+    
+    --border: 215 15% 88%;             
+    --input: 215 15% 96%;              
+    --ring: 179 65% 40%;               
+    
+    /* Interactive States */
+    --hover-overlay: 179 65% 40% / 0.08;
+    --active-overlay: 179 65% 40% / 0.15;
+    --glow-teal: 179 65% 40% / 0.25;
+    
+    /* Status Colors */
+    --success: 142 60% 45%;            
+    --warning: 45 95% 50%;             
+    --error: 0 72% 51%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Shadows - softer for light mode */
+    --shadow-sm: 0 1px 2px 0 hsl(215 25% 0% / 0.08);
+    --shadow-md: 0 4px 6px -1px hsl(215 25% 0% / 0.12);
+    --shadow-lg: 0 10px 15px -3px hsl(215 25% 0% / 0.15);
+    --shadow-inner: inset 0 2px 4px 0 hsl(215 25% 0% / 0.08);
+    --shadow-glow: 0 0 20px hsl(var(--glow-teal));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-ui antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Monaco Editor Font Features */
+  .monaco-editor {
+    font-family: var(--font-mono) !important;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Button Variants */
+  .btn-primary {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground;
+    @apply rounded-md px-4 py-2 font-medium;
+    @apply transition-all duration-normal;
+    @apply shadow-sm hover:shadow-md;
+    @apply border border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground;
+    @apply rounded-md px-4 py-2 font-medium;
+    @apply transition-all duration-normal;
+    @apply shadow-sm hover:shadow-md;
+    @apply border border-border;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  .btn-ghost {
+    @apply hover:bg-surface-secondary text-foreground;
+    @apply rounded-md px-4 py-2 font-medium;
+    @apply transition-all duration-normal;
+    @apply border border-transparent;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+  }
+  
+  /* Soft glow on hover */
+  .btn-glow {
+    @apply hover:shadow-glow;
+  }
+  
+  /* Angled button corners */
+  .btn-angled {
+    clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  }
+  
+  /* Glassmorphism styles */
+  .glass-card {
+    @apply backdrop-blur-xl bg-surface-primary/40 border border-border/50;
+    @apply shadow-lg rounded-xl;
+  }
+  
+  .glass-panel {
+    @apply backdrop-blur-lg bg-surface-secondary/60 border border-border/40;
+    @apply shadow-md rounded-lg;
+  }
+  
+  /* Panel styles */
+  .panel-primary {
+    @apply bg-surface-primary border border-border rounded-lg shadow-md;
+  }
+  
+  .panel-secondary {
+    @apply bg-surface-secondary border border-border rounded-md shadow-sm;
+  }
+  
+  /* Interactive states */
+  .interactive {
+    @apply transition-all duration-normal;
+    @apply hover:bg-surface-secondary/50;
+    @apply active:scale-[0.98];
+  }
+  
+  /* Dock styles */
+  .dock-tab {
+    @apply px-3 py-2 text-sm font-medium rounded-t-md;
+    @apply border-b-2 border-transparent;
+    @apply transition-all duration-normal;
+    @apply hover:bg-surface-secondary hover:text-foreground;
+  }
+  
+  .dock-tab.active {
+    @apply bg-surface-tertiary text-foreground border-primary;
+  }
+
+  /* Scrollbar utilities for file tabs */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+}

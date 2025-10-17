@@ -1,0 +1,4 @@
+project_id = "eelhkdacrhkzjkgfscjl"
+
+[functions.judge0-runner]
+verify_jwt = false
